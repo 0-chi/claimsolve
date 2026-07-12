@@ -8,6 +8,7 @@ import {
   type Outcome,
   type LiveComplaintInput,
 } from "@/lib/scoring";
+import { PUBLIC_COMPLAINT_OR } from "@/lib/queries";
 
 export interface CompanyScoreBundle {
   recent: ScoreResult; // 直近24ヶ月
@@ -21,12 +22,7 @@ export async function getCompanyScore(companyId: string): Promise<CompanyScoreBu
   const reviews = await prisma.review.findMany({
     where: {
       companyId,
-      complaint: {
-        OR: [
-          { lane: "past", status: "published" },
-          { lane: "live" },
-        ],
-      },
+      complaint: { OR: PUBLIC_COMPLAINT_OR },
     },
     include: { complaint: true },
   });
@@ -83,12 +79,7 @@ export async function getRepresentativeReviews(companyId: string, take = 2) {
   const reviews = await prisma.review.findMany({
     where: {
       companyId,
-      complaint: {
-        OR: [
-          { lane: "past", status: "published" },
-          { lane: "live" },
-        ],
-      },
+      complaint: { OR: PUBLIC_COMPLAINT_OR },
     },
     include: { complaint: true, reply: true },
   });

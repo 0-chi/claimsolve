@@ -43,6 +43,8 @@ export default function PostForm({
   const [title, setTitle] = useState("");
   const [occurredYearMonth, setOccurredYearMonth] = useState("");
   const [body, setBody] = useState("");
+  const [desiredResolutions, setDesiredResolutions] = useState("");
+  const [newCompanyEmail, setNewCompanyEmail] = useState("");
   const [ngResult, setNgResult] = useState<any>(null);
 
   // 評価
@@ -117,7 +119,42 @@ export default function PostForm({
     );
   }
 
+  async function finalSubmitLive() {
+    setError("");
+    setSubmitting(true);
+    try {
+      const payload: any = {
+        category,
+        title: title || `${company?.name}への進行中トラブル`,
+        body,
+        desiredResolutions,
+        occurredYearMonth,
+        account: { displayName, email, phone, code },
+      };
+      if (newCompanyMode) payload.newCompany = { name: company?.name, category, notifyEmail: newCompanyEmail };
+      else payload.corporateNumber = company?.corporateNumber;
+
+      const r = await fetch("/api/complaints/live", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const j = await r.json();
+      if (!j.ok) {
+        setError(j.message ?? "投稿に失敗しました。");
+        setSubmitting(false);
+        return;
+      }
+      setResult({ live: true, token: j.token });
+      setStep("done");
+    } catch {
+      setError("通信エラーが発生しました。");
+    }
+    setSubmitting(false);
+  }
+
   async function finalSubmit() {
+    if (lane === "live") return finalSubmitLive();
     setError("");
     setSubmitting(true);
     try {
@@ -248,6 +285,14 @@ export default function PostForm({
                 value={company?.name ?? ""}
                 onChange={(e) => setCompany({ name: e.target.value })}
               />
+              {lane === "live" && (
+                <input
+                  className="input"
+                  placeholder="企業のメールアドレス(任意・通知に使用)"
+                  value={newCompanyEmail}
+                  onChange={(e) => setNewCompanyEmail(e.target.value)}
+                />
+              )}
               <button
                 className="text-xs text-slate-500 hover:underline"
                 onClick={() => {
@@ -309,6 +354,13 @@ export default function PostForm({
             </div>
           </div>
 
+          {lane === "live" && (
+            <div>
+              <label className="label">希望する解決(企業に伝わります)</label>
+              <input className="input" value={desiredResolutions} onChange={(e) => setDesiredResolutions(e.target.value)} placeholder="例:全額返金と原因説明" />
+            </div>
+          )}
+
           <button className="btn-outline w-full" onClick={runNgCheck}>
             NGワードチェック
           </button>
@@ -317,9 +369,9 @@ export default function PostForm({
           <button
             className="btn-primary w-full"
             disabled={toPost > 0 || !occurredYearMonth || (ngResult && !ngResult.ok)}
-            onClick={() => setStep("evaluation")}
+            onClick={() => setStep(lane === "live" ? "account" : "evaluation")}
           >
-            評価に進む
+            {lane === "live" ? "アカウント登録へ" : "評価に進む"}
           </button>
           {ngResult && !ngResult.ok && (
             <p className="text-center text-xs text-rose-500">投稿できない表現を修正してください。</p>
@@ -492,13 +544,26 @@ export default function PostForm({
           >
             {submitting ? "送信中…" : "投稿を確定する"}
           </button>
-          <button className="text-xs text-slate-500 hover:underline" onClick={() => setStep("evaluation")}>
-            ← 評価に戻る
+          <button className="text-xs text-slate-500 hover:underline" onClick={() => setStep(lane === "live" ? "content" : "evaluation")}>
+            ← 戻る
           </button>
         </div>
       )}
 
-      {step === "done" && result && (
+      {step === "done" && result?.live && (
+        <div className="card space-y-3 text-center">
+          <div className="text-3xl">📨</div>
+          <p className="font-semibold">進行中トラブルを受け付けました</p>
+          <p className="text-sm text-slate-600">
+            運営の承認後に企業へ通知されます。専用ページのリンクをメールでお送りしました(72時間有効)。
+          </p>
+          <button className="btn-primary" onClick={() => router.push(`/m/${result.token}`)}>
+            専用ページを開く
+          </button>
+        </div>
+      )}
+
+      {step === "done" && result && !result.live && (
         <div className="card space-y-3 text-center">
           <div className="text-3xl">✅</div>
           <p className="font-semibold">レビューを公開しました</p>

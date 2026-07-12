@@ -1,6 +1,7 @@
 // フラグ管理(gate_enabled / monetization_enabled / live_enabled)。
 import { prisma } from "@/lib/prisma";
 import { shouldGateBeOn } from "@/lib/gate";
+import { publicReviewWhere } from "@/lib/queries";
 
 export type FlagKey = "gate_enabled" | "monetization_enabled" | "live_enabled";
 
@@ -44,14 +45,7 @@ export async function getGateActivatedAt(): Promise<Date | null> {
 
 // 公開レビュー総数(past published + live 評価確定分)。
 export async function publicReviewCount(): Promise<number> {
-  return prisma.review.count({
-    where: {
-      OR: [
-        { complaint: { lane: "past", status: "published" } },
-        { complaint: { lane: "live" } },
-      ],
-    },
-  });
+  return prisma.review.count({ where: publicReviewWhere });
 }
 
 // 200件超で自動ON(admin が手動上書きした場合は尊重して自動変更しない)。

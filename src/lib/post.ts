@@ -227,7 +227,21 @@ export async function submitPastReview(input: PastReviewInput) {
     });
   }
 
-  // 11. ゲート自動発動チェック
+  // 11. 企業ウォッチャーへ新着レビュー通知(投稿者本人は除く)
+  const watchers = await prisma.companyWatch.findMany({
+    where: { companyId: company.id, userId: { not: user.id } },
+    include: { user: true },
+  });
+  for (const w of watchers) {
+    await mailService.send({
+      to: w.user.email,
+      subject: `【クレソル】ウォッチ中の${company.name}に新着レビュー`,
+      body: `${company.name} に新しいレビューが投稿されました。`,
+      purpose: "watch_notify",
+    });
+  }
+
+  // 12. ゲート自動発動チェック
   await maybeAutoActivateGate();
 
   return {

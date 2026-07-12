@@ -11,6 +11,8 @@ import { ScoreBadgePill, ScoreNumber } from "@/components/ScoreBadge";
 import { MetricSummary } from "@/components/MetricSummary";
 import { ReviewCard } from "@/components/ReviewCard";
 import { GateBlock } from "@/components/GateBlock";
+import WatchButton from "@/components/WatchButton";
+import { getCurrentUser } from "@/lib/session";
 import { categoryLabel, LIVE_STATUS_LABELS } from "@/lib/labels";
 
 export const dynamic = "force-dynamic";
@@ -56,6 +58,13 @@ export default async function CompanyPage({
   const liveFacts = liveEnabled ? await loadLiveFacts(company.id) : [];
   const sub = await prisma.subscription.findUnique({ where: { companyId: company.id } });
   const isLightPlan = sub && (sub.status === "trial" || sub.status === "active");
+
+  const currentUser = await getCurrentUser();
+  const watched = currentUser
+    ? !!(await prisma.companyWatch.findUnique({
+        where: { userId_companyId: { userId: currentUser.id, companyId: company.id } },
+      }))
+    : false;
 
   return (
     <div className="space-y-6">
@@ -106,11 +115,12 @@ export default async function CompanyPage({
         )}
       </section>
 
-      {/* 投稿導線 */}
-      <div className="flex gap-2">
+      {/* 投稿導線 + ウォッチ */}
+      <div className="flex items-center gap-2">
         <Link href={`/post?company=${company.corporateNumber}`} className="btn-primary flex-1">
           この企業をレビューする
         </Link>
+        {currentUser && <WatchButton companyId={company.id} initialWatched={watched} />}
       </div>
 
       {/* ライブ事実データ(live_enabled=ON のときのみ) */}

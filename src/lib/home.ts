@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { getCompanyScore } from "@/lib/company-score";
+import { PUBLIC_COMPLAINT_OR } from "@/lib/queries";
 import type { ScoreResult } from "@/lib/scoring";
 
 export interface CompanyCardData {
@@ -32,14 +33,7 @@ export async function getCompaniesWithScores(): Promise<CompanyCardData[]> {
 
 export async function getLatestReviews(take = 6) {
   return prisma.review.findMany({
-    where: {
-      complaint: {
-        OR: [
-          { lane: "past", status: "published" },
-          { lane: "live" },
-        ],
-      },
-    },
+    where: { complaint: { OR: PUBLIC_COMPLAINT_OR } },
     include: { company: true, complaint: true },
     orderBy: { createdAt: "desc" },
     take,

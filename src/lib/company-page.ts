@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { within24Months } from "@/lib/scoring";
+import { PUBLIC_COMPLAINT_OR } from "@/lib/queries";
 import type { ReviewCardReview } from "@/components/ReviewCard";
 
 // 表示用にレビューを整形(係争中フラグ・改善済みバッジ・返信を付与)。
@@ -10,12 +11,7 @@ export async function loadCompanyReviews(
   const reviews = await prisma.review.findMany({
     where: {
       companyId,
-      complaint: {
-        OR: [
-          { lane: "past", status: "published" },
-          { lane: "live" },
-        ],
-      },
+      complaint: { OR: PUBLIC_COMPLAINT_OR },
     },
     include: {
       complaint: { include: { objections: true } },
