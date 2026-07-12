@@ -75,6 +75,7 @@ async function main() {
   await prisma.plan.createMany({
     data: [
       { key: "light", name: "ライトプラン", priceMonthly: 1980, active: true },
+      { key: "consumer", name: "個人閲覧プラン", priceMonthly: 150, active: true },
     ],
   });
 
