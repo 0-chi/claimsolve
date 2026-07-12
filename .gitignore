@@ -12,3 +12,7 @@ next-env.d.ts
 coverage
 .vercel
 tsconfig.tsbuildinfo
+
+# stray nested prisma dir guard
+prisma/prisma/
+test.db

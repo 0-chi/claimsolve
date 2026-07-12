@@ -3,7 +3,9 @@ import { rmSync } from "node:fs";
 
 // 統合テスト用の使い捨て SQLite DB を用意する。
 export default function setup() {
-  const url = "file:./prisma/test.db";
+  // prisma は file: URL を schema ディレクトリ(prisma/)基準で解決するため
+  // ./test.db は prisma/test.db を指す。
+  const url = "file:./test.db";
   process.env.DATABASE_URL = url;
   try {
     rmSync("./prisma/test.db", { force: true });
