@@ -5,6 +5,10 @@ export default defineConfig({
   test: {
     environment: "node",
     include: ["src/**/*.test.ts", "tests/**/*.test.ts"],
+    globalSetup: ["tests/global-setup.ts"],
+    env: {
+      DATABASE_URL: "file:./prisma/test.db",
+    },
   },
   resolve: {
     alias: {
