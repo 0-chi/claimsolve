@@ -1,0 +1,344 @@
+// クレソル(ClaimSolve)データモデル v2.4
+// 開発は SQLite。PostgreSQL 互換を保つため、enum は使わず String + コメントで
+// 許容値を明示する(SQLite は Prisma enum 非対応のため)。
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// 消費者
+// ---------------------------------------------------------------------------
+model User {
+  id          String   @id @default(cuid())
+  displayName String   @unique // ニックネーム(実名は収集しない)
+  email       String   @unique
+  phone       String   @unique // 1電話番号 = 1アカウント
+  kycStatus   String   @default("none") // none | verified(任意機能)
+  strikes     Int      @default(0) // warn 累積数
+  bannedAt    DateTime?
+  createdAt   DateTime @default(now())
+
+  complaints          Complaint[]
+  reviews             Review[]
+  viewPasses          ViewPass[]
+  watches             CompanyWatch[]
+  consumerSub         ConsumerSubscription?
+  strikeRecords       Strike[]
+  magicTokens         MagicToken[]
+}
+
+// 閲覧権
+model ViewPass {
+  id             String   @id @default(cuid())
+  userId         String
+  source         String // review | subscription
+  expiresAt      DateTime
+  sourceReviewId String?
+  createdAt      DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+// 企業ウォッチ(1人 最大5社)
+model CompanyWatch {
+  id        String   @id @default(cuid())
+  userId    String
+  companyId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([userId, companyId])
+}
+
+// 個人閲覧プラン(月額150円)
+model ConsumerSubscription {
+  id               String   @id @default(cuid())
+  userId           String   @unique
+  status           String   @default("active") // active | canceled
+  currentPeriodEnd DateTime
+  createdAt        DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+// ---------------------------------------------------------------------------
+// 企業
+// ---------------------------------------------------------------------------
+model Company {
+  id              String   @id @default(cuid())
+  corporateNumber String   @unique // 法人番号
+  name            String
+  slug            String   @unique
+  address         String
+  category        String // subscription | moving | beauty | rental | other
+  notifyEmail     String?
+  domainVerified  Boolean  @default(false)
+  frozen          Boolean  @default(false) // 不正検知でスコア凍結(審査中)
+  createdAt       DateTime @default(now())
+
+  complaints       Complaint[]
+  reviews          Review[]
+  companyUsers     CompanyUser[]
+  subscription     Subscription?
+  watches          CompanyWatch[]
+  reviewReplies    ReviewReply[]
+  improvementNotes ImprovementNote[]
+}
+
+model CompanyUser {
+  id           String   @id @default(cuid())
+  companyId    String
+  email        String   @unique // 企業ドメイン必須(フリーメール不可)
+  passwordHash String
+  createdAt    DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+}
+
+// 企業サブスク(ライトプラン等)
+model Subscription {
+  id             String   @id @default(cuid())
+  companyId      String   @unique
+  planKey        String   @default("light")
+  status         String   @default("trial") // trial | active | canceled | past_due
+  trialEndsAt    DateTime
+  cardRegistered Boolean  @default(false)
+  createdAt      DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+}
+
+// プラン(名称・価格は config/DB 管理。ハードコードしない)
+model Plan {
+  id           String  @id @default(cuid())
+  key          String  @unique // light | standard | enterprise ...
+  name         String
+  priceMonthly Int
+  active       Boolean @default(true)
+}
+
+// ---------------------------------------------------------------------------
+// フラグ(ゲート・課金・ライブ公開)
+// ---------------------------------------------------------------------------
+model FeatureFlag {
+  key       String   @id // gate_enabled | monetization_enabled | live_enabled
+  value     Boolean  @default(false)
+  updatedBy String?
+  updatedAt DateTime @default(now()) @updatedAt
+  // ゲートON日時の読み替え用(ViewPass 有効期限の補正に使う)
+  activatedAt DateTime?
+}
+
+// ---------------------------------------------------------------------------
+// クレーム / レビュー
+// ---------------------------------------------------------------------------
+model Complaint {
+  id                 String   @id @default(cuid())
+  userId             String
+  companyId          String
+  lane               String // past | live
+  category           String
+  title              String
+  body               String
+  desiredResolutions String? // live のみ
+  occurredAt         DateTime? // live
+  occurredYearMonth  String? // past 必須 "YYYY-MM"
+  status             String   @default("published") // §4 参照
+  publishedAt        DateTime?
+  notifiedAt         DateTime?
+  firstReplyAt       DateTime?
+  sameCount          Int      @default(0)
+  viewCount          Int      @default(0)
+  reopenedOnce       Boolean  @default(false)
+  completionRequestedAt DateTime?
+  evalUnlockedAt     DateTime?
+  ipHash             String? // 開示請求への備え(画面非表示)
+  userAgent          String?
+  createdAt          DateTime @default(now())
+
+  user     User    @relation(fields: [userId], references: [id])
+  company  Company @relation(fields: [companyId], references: [id])
+  review   Review?
+  messages ThreadMessage[]
+  objections Objection[]
+  sameVotes  SameVote[]
+  magicTokens MagicToken[]
+
+  @@index([companyId])
+  @@index([lane, status])
+}
+
+model Review {
+  id                         String   @id @default(cuid())
+  complaintId                String   @unique
+  companyId                  String
+  userId                     String
+  // 必須3問
+  satisfaction               Int // 納得度 4〜10
+  outcome                    String // full_refund | partial_refund | replacement | apology_only | no_action
+  wouldUseAgain              Boolean
+  // 任意
+  inquiryCountToFirstContact Int? // 整数
+  noResponseFlag             Boolean  @default(false) // 「対応されなかった」
+  firstReplySpeed            String? // same_day | within_3d | within_1w | over_2w | none
+  transferCount              Int? // たらい回し回数
+  agentScore                 Int? // 0〜10
+  supervisorScore            Int? // 0〜10
+  noEscalation               Boolean  @default(false) // エスカレーションなし
+  externalChannels           String   @default("") // CSV: consumer_center,adr,lawyer,small_claims,court,none
+  totalDays                  Int?
+  comment                    String   @default("")
+  noResponseEval             Boolean  @default(false) // 返答なしでの評価(IR返答済みに算入しない)
+  createdAt                  DateTime @default(now())
+  publishedAt                DateTime?
+
+  complaint Complaint @relation(fields: [complaintId], references: [id])
+  company   Company   @relation(fields: [companyId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+  reply     ReviewReply?
+  improvementLinks ImprovementNoteReview[]
+
+  @@index([companyId])
+}
+
+model ThreadMessage {
+  id          String   @id @default(cuid())
+  complaintId String
+  senderType  String // user | company
+  body        String
+  createdAt   DateTime @default(now())
+
+  complaint Complaint @relation(fields: [complaintId], references: [id])
+
+  @@index([complaintId])
+}
+
+// 公開返信(全体公開)
+model ReviewReply {
+  id        String   @id @default(cuid())
+  reviewId  String   @unique
+  companyId String
+  body      String
+  createdAt DateTime @default(now())
+
+  review  Review  @relation(fields: [reviewId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+}
+
+// 改善済みバッジ(削除不可・編集履歴を保持)
+model ImprovementNote {
+  id          String   @id @default(cuid())
+  companyId   String
+  body        String
+  editHistory String   @default("[]") // JSON 配列で修正履歴を保持
+  createdAt   DateTime @default(now())
+
+  company Company @relation(fields: [companyId], references: [id])
+  links   ImprovementNoteReview[]
+}
+
+model ImprovementNoteReview {
+  id       String @id @default(cuid())
+  noteId   String
+  reviewId String
+
+  note   ImprovementNote @relation(fields: [noteId], references: [id])
+  review Review          @relation(fields: [reviewId], references: [id])
+
+  @@unique([noteId, reviewId])
+}
+
+// 異議申し立て
+model Objection {
+  id                String   @id @default(cuid())
+  complaintId       String
+  reason            String
+  status            String   @default("open") // open|awaiting_user|kept_disputed|edited_by_user|hidden_by_user|auto_hidden_no_reply
+  userReplyDeadline DateTime // +7日
+  createdAt         DateTime @default(now())
+  resolvedAt        DateTime?
+
+  complaint Complaint @relation(fields: [complaintId], references: [id])
+}
+
+model Strike {
+  id        String   @id @default(cuid())
+  userId    String
+  severity  String // warn | severe
+  reason    String
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Report {
+  id         String   @id @default(cuid())
+  targetType String // complaint | review | reply | note
+  targetId   String
+  reason     String
+  status     String   @default("open") // open | reviewed | actioned | dismissed
+  createdAt  DateTime @default(now())
+}
+
+model MagicToken {
+  id          String   @id @default(cuid())
+  userId      String
+  complaintId String
+  token       String   @unique
+  expiresAt   DateTime // 72時間
+  usedAt      DateTime?
+  createdAt   DateTime @default(now())
+
+  user      User      @relation(fields: [userId], references: [id])
+  complaint Complaint @relation(fields: [complaintId], references: [id])
+}
+
+model EmailLog {
+  id        String   @id @default(cuid())
+  to        String
+  subject   String
+  body      String
+  purpose   String
+  status    String   @default("sent") // queued | approved | sent
+  createdAt DateTime @default(now())
+}
+
+model ModerationLog {
+  id         String   @id @default(cuid())
+  actor      String
+  action     String
+  targetType String?
+  targetId   String?
+  detail     String?
+  createdAt  DateTime @default(now())
+}
+
+// 法人番号マスタ(シード架空100社)
+model CorporateMaster {
+  id              String @id @default(cuid())
+  corporateNumber String @unique
+  name            String
+  address         String
+  category        String
+}
+
+model SameVote {
+  id          String   @id @default(cuid())
+  complaintId String
+  fingerprint String
+  createdAt   DateTime @default(now())
+
+  complaint Complaint @relation(fields: [complaintId], references: [id])
+
+  @@unique([complaintId, fingerprint])
+}
