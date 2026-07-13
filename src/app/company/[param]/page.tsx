@@ -3,8 +3,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { parseCompanyParam } from "@/lib/company-url";
-import { getCompanyScore, getRepresentativeReviews } from "@/lib/company-score";
-import { loadCompanyReviews, loadLiveFacts } from "@/lib/company-page";
+import { getCompanyScore, getRepresentativeReviews, getCompanySilentStats } from "@/lib/company-score";
+import { loadCompanyReviews, loadLiveFacts, loadSilentReports } from "@/lib/company-page";
+import { SilentCard } from "@/components/SilentCard";
 import { canViewAllReviews } from "@/lib/session";
 import { getFlag, maybeAutoActivateGate } from "@/lib/flags";
 import { ScoreBadgePill, ScoreNumber } from "@/components/ScoreBadge";
@@ -48,6 +49,8 @@ export default async function CompanyPage({
   const reps = await getRepresentativeReviews(company.id, 2);
   const gate = await canViewAllReviews();
   const liveEnabled = await getFlag("live_enabled");
+  const silentStats = await getCompanySilentStats(company.id);
+  const silentReports = gate.allowed ? await loadSilentReports(company.id) : [];
 
   const allReviews = gate.allowed ? await loadCompanyReviews(company.id, period) : [];
   const repIds = new Set(reps.map((r) => r.id));
@@ -113,14 +116,30 @@ export default async function CompanyPage({
             レビュー5件未満のため集計中です(現在 {score.reviewCount}件)。
           </p>
         )}
+
+        {/* 沈黙率(常時公開・ARとは別枠) */}
+        {silentStats.sr != null && (
+          <div className="rounded-lg bg-amber-50 p-3 text-xs text-amber-800">
+            この企業への報告のうち <strong className="text-sm">{silentStats.sr}%</strong> が
+            「企業に一度も言わなかった」人からのものです。
+          </div>
+        )}
       </section>
 
       {/* 投稿導線 + ウォッチ */}
-      <div className="flex items-center gap-2">
-        <Link href={`/post?company=${company.corporateNumber}`} className="btn-primary flex-1">
-          この企業をレビューする
+      <div className="space-y-2">
+        <div className="flex items-center gap-2">
+          <Link href={`/post?company=${company.corporateNumber}`} className="btn-primary flex-1">
+            この企業をレビューする
+          </Link>
+          {currentUser && <WatchButton companyId={company.id} initialWatched={watched} />}
+        </div>
+        <Link
+          href={`/post?company=${company.corporateNumber}&lane=silent`}
+          className="btn-outline w-full text-sm"
+        >
+          言わずに終わった不満を記録する
         </Link>
-        {currentUser && <WatchButton companyId={company.id} initialWatched={watched} />}
       </div>
 
       {/* ライブ事実データ(live_enabled=ON のときのみ) */}
@@ -172,6 +191,25 @@ export default async function CompanyPage({
           <GateBlock companyCorpNumber={company.corporateNumber} />
         )}
       </section>
+
+      {/* 言わずに終わった声(silent・ARとは別枠) */}
+      {silentStats.silentCount > 0 && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-base font-bold">言わずに終わった声</h2>
+            <p className="text-xs text-slate-400">
+              企業に一度も言わなかった不満の記録です。スコア(AR)には算入していません。
+            </p>
+          </div>
+          {gate.allowed ? (
+            silentReports.map((r) => <SilentCard key={r.id} report={r} />)
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center text-sm text-slate-500">
+              沈黙レポート {silentStats.silentCount}件。本文の閲覧には登録が必要です。
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }

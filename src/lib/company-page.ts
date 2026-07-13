@@ -1,6 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { within24Months } from "@/lib/scoring";
-import { PUBLIC_COMPLAINT_OR } from "@/lib/queries";
+import { REVIEW_COMPLAINT_OR } from "@/lib/queries";
 import type { ReviewCardReview } from "@/components/ReviewCard";
 
 // 表示用にレビューを整形(係争中フラグ・改善済みバッジ・返信を付与)。
@@ -11,7 +11,7 @@ export async function loadCompanyReviews(
   const reviews = await prisma.review.findMany({
     where: {
       companyId,
-      complaint: { OR: PUBLIC_COMPLAINT_OR },
+      complaint: { OR: REVIEW_COMPLAINT_OR },
     },
     include: {
       complaint: { include: { objections: true } },
@@ -56,6 +56,26 @@ export async function loadCompanyReviews(
     user: { kycStatus: r.user.kycStatus },
     disputed: r.complaint.objections.some((o) => o.status === "kept_disputed"),
     improvementNotes: r.improvementLinks.map((l) => ({ id: l.note.id, body: l.note.body })),
+  }));
+}
+
+// 沈黙レポート(silent)の一覧。企業ページ「言わずに終わった声」セクション用。
+export async function loadSilentReports(companyId: string) {
+  const rows = await prisma.complaint.findMany({
+    where: { companyId, lane: "silent", status: "published" },
+    include: { user: true, objections: true },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map((c) => ({
+    id: c.id,
+    title: c.title,
+    body: c.body,
+    occurredYearMonth: c.occurredYearMonth,
+    silenceReasons: (c.silenceReasons ?? "").split(",").map((r) => r.trim()).filter(Boolean),
+    silentWouldUseAgain: c.silentWouldUseAgain,
+    desiredOutcome: c.desiredOutcome,
+    kycStatus: c.user.kycStatus,
+    disputed: c.objections.some((o) => o.status === "kept_disputed"),
   }));
 }
 

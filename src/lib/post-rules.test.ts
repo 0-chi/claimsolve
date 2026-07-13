@@ -4,7 +4,9 @@ import {
   grantsViewPass,
   bodyCounterState,
   canAddReviewForCompany,
+  canAddSilentForCompany,
   canPostToday,
+  validSilenceReasons,
 } from "./post-rules";
 
 const repeat = (n: number) => "あ".repeat(n);
@@ -52,5 +54,21 @@ describe("1日の投稿数制限", () => {
     expect(canPostToday(0)).toBe(true);
     expect(canPostToday(1)).toBe(true);
     expect(canPostToday(2)).toBe(false);
+  });
+});
+
+describe("silent の制限", () => {
+  it("同一企業への silent は1件まで(2件目はブロック)", () => {
+    expect(canAddSilentForCompany(0)).toBe(true);
+    expect(canAddSilentForCompany(1)).toBe(false);
+  });
+
+  it("沈黙理由は1〜2個必須。0個・3個は不可", () => {
+    expect(validSilenceReasons([])).toBe(false);
+    expect(validSilenceReasons(["too_much_hassle"])).toBe(true);
+    expect(validSilenceReasons(["too_much_hassle", "felt_pointless"])).toBe(true);
+    expect(validSilenceReasons(["a", "b", "c"])).toBe(false);
+    // 重複は1つに畳んで判定
+    expect(validSilenceReasons(["too_much_hassle", "too_much_hassle"])).toBe(true);
   });
 });

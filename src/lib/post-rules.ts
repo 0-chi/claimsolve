@@ -1,9 +1,12 @@
 // past投稿の品質下限・レート制限(§5.1-6)。純関数でテスト可能。
 
 export const MIN_POST_CHARS = 50; // これ未満は投稿不可
-export const MIN_VIEWPASS_CHARS = 100; // 閲覧権付与の下限
-export const MAX_REVIEWS_PER_COMPANY = 2; // 同一企業へは1ユーザー2件まで
-export const MAX_POSTS_PER_DAY = 2; // 1ユーザー1日2件まで
+export const MIN_VIEWPASS_CHARS = 100; // past 閲覧権付与の下限
+export const MAX_REVIEWS_PER_COMPANY = 2; // 同一企業への past は1ユーザー2件まで
+export const MAX_SILENT_PER_COMPANY = 1; // 同一企業への silent は1ユーザー1件まで
+export const MAX_POSTS_PER_DAY = 2; // 1ユーザー1日2件まで(全レーン合算)
+export const MAX_SILENCE_REASONS = 2; // 沈黙理由は最大2つ
+export const MIN_SILENCE_REASONS = 1; // 最低1つ
 
 // 本文の文字数(前後空白を除く)。
 export function bodyLength(body: string): number {
@@ -36,6 +39,16 @@ export function canAddReviewForCompany(existingCount: number): boolean {
   return existingCount < MAX_REVIEWS_PER_COMPANY;
 }
 
+export function canAddSilentForCompany(existingCount: number): boolean {
+  return existingCount < MAX_SILENT_PER_COMPANY;
+}
+
 export function canPostToday(todayCount: number): boolean {
   return todayCount < MAX_POSTS_PER_DAY;
+}
+
+// 沈黙理由は1〜2個必須。3個目以降は不可。
+export function validSilenceReasons(reasons: string[]): boolean {
+  const uniq = Array.from(new Set(reasons));
+  return uniq.length >= MIN_SILENCE_REASONS && uniq.length <= MAX_SILENCE_REASONS;
 }

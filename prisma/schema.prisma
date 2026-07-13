@@ -35,14 +35,14 @@ model User {
 }
 
 // 閲覧権
-// source: review = 発行から1ヶ月 / subscription = 契約期間中 / share = 24時間
+// source: review = 1ヶ月 / silent = 3日 / share = 24時間 / subscription = 契約期間中
 model ViewPass {
-  id             String   @id @default(cuid())
-  userId         String
-  source         String // review | subscription | share
-  expiresAt      DateTime
-  sourceReviewId String?
-  createdAt      DateTime @default(now())
+  id                String   @id @default(cuid())
+  userId            String
+  source            String // review | silent | share | subscription
+  expiresAt         DateTime
+  sourceComplaintId String?
+  createdAt         DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
 
@@ -160,13 +160,17 @@ model Complaint {
   id                 String   @id @default(cuid())
   userId             String
   companyId          String
-  lane               String // past | live
+  lane               String // past | live | silent
   category           String
   title              String
   body               String
   desiredResolutions String? // live のみ
   occurredAt         DateTime? // live
-  occurredYearMonth  String? // past 必須 "YYYY-MM"
+  occurredYearMonth  String? // past/silent 必須 "YYYY-MM"
+  // silent(沈黙レポート)専用
+  silenceReasons     String? // CSV。silenceReasons enum を1〜2個
+  silentWouldUseAgain Boolean? // silent 任意
+  desiredOutcome     String? // silent 任意・本当はどうしてほしかったか
   status             String   @default("published") // §4 参照
   publishedAt        DateTime?
   notifiedAt         DateTime?

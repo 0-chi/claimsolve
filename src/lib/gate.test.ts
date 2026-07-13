@@ -52,15 +52,21 @@ describe("ViewPass 有効期限の読み替え(review由来=ON日から1ヶ月)"
 });
 
 describe("複数ViewPassの有効期限合成(最も遅い期限を採用)", () => {
-  it("review(1ヶ月)/share(24h)/subscription を合成し最遅を返す", () => {
+  it("review(1ヶ月)/silent(3日)/share(24h)/subscription を合成し最遅を返す", () => {
     const now = new Date(2026, 5, 1);
     const review = { createdAt: now, expiresAt: new Date(2026, 6, 1), source: "review" }; // +1ヶ月
+    const silent = { createdAt: now, expiresAt: new Date(2026, 5, 4), source: "silent" }; // +3日
     const share = { createdAt: now, expiresAt: new Date(2026, 5, 2), source: "share" }; // +24h
     const subEnd = new Date(2026, 8, 1); // 契約はさらに先
-    expect(latestAccessExpiry([review, share], subEnd, null)).toEqual(new Date(2026, 8, 1));
-    // subscription なしなら review の1ヶ月
-    expect(latestAccessExpiry([review, share], null, null)).toEqual(new Date(2026, 6, 1));
-    // 権利なし
+    expect(latestAccessExpiry([silent, share], null, null)).toEqual(new Date(2026, 5, 4)); // silentが最遅
+    expect(latestAccessExpiry([review, silent, share], subEnd, null)).toEqual(new Date(2026, 8, 1));
+    expect(latestAccessExpiry([review, silent, share], null, null)).toEqual(new Date(2026, 6, 1));
     expect(latestAccessExpiry([], null, null)).toBeNull();
+  });
+
+  it("silent由来はゲートON前でも読み替えない(3日のまま)", () => {
+    const gateOn = new Date(2026, 0, 1);
+    const silent = { createdAt: new Date(2025, 11, 20), expiresAt: new Date(2025, 11, 23), source: "silent" };
+    expect(effectiveViewPassExpiry(silent, gateOn)).toEqual(new Date(2025, 11, 23));
   });
 });

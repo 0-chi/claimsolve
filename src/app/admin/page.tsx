@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { getAllFlags, publicReviewCount } from "@/lib/flags";
+import { getAllFlags, publicPostCount } from "@/lib/flags";
 import { AdminActionButton, FlagToggle } from "@/components/AdminButton";
 
 export const dynamic = "force-dynamic";
@@ -7,7 +7,7 @@ export const metadata = { title: "運営管理 | クレソル" };
 
 export default async function AdminPage() {
   const flags = await getAllFlags();
-  const reviewCount = await publicReviewCount();
+  const reviewCount = await publicPostCount();
 
   const pendingLive = await prisma.complaint.findMany({
     where: { lane: "live", status: "pending_review" },
@@ -39,7 +39,7 @@ export default async function AdminPage() {
         <div className="space-y-2">
           <FlagToggle flagKey="gate_enabled" value={flags.gate_enabled} label="閲覧ゲート" />
           <p className="pl-1 text-xs text-slate-400">
-            公開レビュー総数: {reviewCount}件(200件超で自動ON。手動上書き可)
+            公開投稿総数(past+silent+live): {reviewCount}件(200件超で自動ON。手動上書き可)
           </p>
           <FlagToggle flagKey="monetization_enabled" value={flags.monetization_enabled} label="課金開始(個人閲覧プラン)" />
           <FlagToggle flagKey="live_enabled" value={flags.live_enabled} label="ライブレーン公開" />

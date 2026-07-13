@@ -203,7 +203,7 @@ export async function submitPastReview(input: PastReviewInput) {
     const expiresAt = new Date(now);
     expiresAt.setMonth(expiresAt.getMonth() + 1);
     await prisma.viewPass.create({
-      data: { userId: user.id, source: "review", expiresAt, sourceReviewId: review.id },
+      data: { userId: user.id, source: "review", expiresAt, sourceComplaintId: complaint.id },
     });
     // ウォッチ(上限は購読状況で可変。既に上限なら追加しない)
     const consumerSub = await prisma.consumerSubscription.findUnique({ where: { userId: user.id } });

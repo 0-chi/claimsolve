@@ -24,7 +24,13 @@ export default async function PostPage({
       <PostForm
         liveEnabled={liveEnabled}
         presetCompany={presetCompany}
-        presetLane={searchParams.lane === "live" ? "live" : undefined}
+        presetLane={
+          searchParams.lane === "silent"
+            ? "silent"
+            : searchParams.lane === "live"
+              ? "live"
+              : undefined
+        }
       />
     </div>
   );

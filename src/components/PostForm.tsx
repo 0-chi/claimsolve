@@ -2,11 +2,11 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CATEGORY_LABELS, REPLY_SPEED_LABELS, EXTERNAL_CHANNEL_LABELS } from "@/lib/labels";
-import { OUTCOME_LABELS, type Outcome } from "@/lib/scoring";
-import { MIN_POST_CHARS, MIN_VIEWPASS_CHARS } from "@/lib/post-rules";
+import { OUTCOME_LABELS, SILENCE_REASON_LABELS, SILENCE_REASONS, type Outcome, type SilenceReason } from "@/lib/scoring";
+import { MIN_POST_CHARS, MIN_VIEWPASS_CHARS, MAX_SILENCE_REASONS } from "@/lib/post-rules";
 
-type Lane = "past" | "live";
-type Step = "lane" | "company" | "content" | "evaluation" | "account" | "done";
+type Lane = "past" | "live" | "silent";
+type Step = "lane" | "company" | "content" | "evaluation" | "reasons" | "account" | "done";
 
 interface CompanyResult {
   corporateNumber: string;
@@ -27,7 +27,13 @@ export default function PostForm({
   const router = useRouter();
   const [lane, setLane] = useState<Lane>(presetLane ?? "past");
   const [step, setStep] = useState<Step>(
-    presetCompany ? "content" : liveEnabled && !presetLane ? "lane" : "company"
+    presetLane
+      ? presetCompany
+        ? "content"
+        : "company"
+      : presetCompany
+        ? "content"
+        : "lane"
   );
 
   // 企業
@@ -46,6 +52,11 @@ export default function PostForm({
   const [desiredResolutions, setDesiredResolutions] = useState("");
   const [newCompanyEmail, setNewCompanyEmail] = useState("");
   const [ngResult, setNgResult] = useState<any>(null);
+
+  // silent(沈黙レポート)
+  const [silenceReasons, setSilenceReasons] = useState<string[]>([]);
+  const [silentWouldUseAgain, setSilentWouldUseAgain] = useState<boolean | null>(null);
+  const [desiredOutcome, setDesiredOutcome] = useState("");
 
   // 評価
   const [satisfaction, setSatisfaction] = useState(7);
@@ -119,6 +130,50 @@ export default function PostForm({
     );
   }
 
+  function toggleReason(r: string) {
+    setSilenceReasons((prev) => {
+      if (prev.includes(r)) return prev.filter((x) => x !== r);
+      if (prev.length >= MAX_SILENCE_REASONS) return prev; // 最大2つ
+      return [...prev, r];
+    });
+  }
+
+  async function finalSubmitSilent() {
+    setError("");
+    setSubmitting(true);
+    try {
+      const payload: any = {
+        category,
+        title: title || `${company?.name}への言わなかった不満`,
+        body,
+        occurredYearMonth,
+        silenceReasons,
+        silentWouldUseAgain,
+        desiredOutcome,
+        account: { displayName, email, phone, code },
+      };
+      if (newCompanyMode) payload.newCompany = { name: company?.name, category };
+      else payload.corporateNumber = company?.corporateNumber;
+
+      const r = await fetch("/api/complaints/silent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const j = await r.json();
+      if (!j.ok) {
+        setError(j.message ?? "投稿に失敗しました。");
+        setSubmitting(false);
+        return;
+      }
+      setResult({ ...j, silent: true });
+      setStep("done");
+    } catch {
+      setError("通信エラーが発生しました。");
+    }
+    setSubmitting(false);
+  }
+
   async function finalSubmitLive() {
     setError("");
     setSubmitting(true);
@@ -155,6 +210,7 @@ export default function PostForm({
 
   async function finalSubmit() {
     if (lane === "live") return finalSubmitLive();
+    if (lane === "silent") return finalSubmitSilent();
     setError("");
     setSubmitting(true);
     try {
@@ -207,9 +263,9 @@ export default function PostForm({
     <div className="space-y-4">
       <StepIndicator step={step} lane={lane} liveEnabled={liveEnabled} />
 
-      {step === "lane" && liveEnabled && (
+      {step === "lane" && (
         <div className="space-y-3">
-          <p className="text-sm text-slate-600">どちらを投稿しますか?</p>
+          <p className="text-sm text-slate-600">どれを投稿しますか?</p>
           <button
             className="card w-full text-left hover:border-brand-500"
             onClick={() => {
@@ -217,18 +273,32 @@ export default function PostForm({
               setStep("company");
             }}
           >
-            <div className="font-semibold">終わったトラブルをレビューする</div>
-            <p className="text-xs text-slate-500">過去の対応を評価して公開します。</p>
+            <div className="font-semibold">終わったトラブルを評価する</div>
+            <p className="text-xs text-slate-500">過去の対応を評価して公開します(レビュー)。</p>
           </button>
+          {liveEnabled && (
+            <button
+              className="card w-full text-left hover:border-brand-500"
+              onClick={() => {
+                setLane("live");
+                setStep("company");
+              }}
+            >
+              <div className="font-semibold">進行中のトラブルを企業に届ける</div>
+              <p className="text-xs text-slate-500">企業に通知し、非公開スレッドで解決を目指します。</p>
+            </button>
+          )}
           <button
             className="card w-full text-left hover:border-brand-500"
             onClick={() => {
-              setLane("live");
+              setLane("silent");
               setStep("company");
             }}
           >
-            <div className="font-semibold">進行中のトラブルを企業に届ける</div>
-            <p className="text-xs text-slate-500">企業に通知し、非公開スレッドで解決を目指します。</p>
+            <div className="font-semibold">言わずに終わった不満を記録する</div>
+            <p className="text-xs text-slate-500">
+              企業に一度も言わなかった不満を、「なぜ言わなかったか」とともに残します。
+            </p>
           </button>
         </div>
       )}
@@ -348,9 +418,15 @@ export default function PostForm({
               <span className={toPost > 0 ? "text-rose-500" : "text-emerald-600"}>
                 {toPost > 0 ? `投稿可能まで${toPost}字` : "投稿可能"}
               </span>
-              <span className={toViewPass > 0 ? "text-slate-400" : "text-emerald-600"}>
-                {toViewPass > 0 ? `閲覧権獲得まで${toViewPass}字` : "閲覧権獲得ライン到達"}
-              </span>
+              {lane === "silent" ? (
+                <span className={toPost > 0 ? "text-slate-400" : "text-emerald-600"}>
+                  {toPost > 0 ? "閲覧権(3日)まで50字" : "閲覧権(3日)獲得"}
+                </span>
+              ) : (
+                <span className={toViewPass > 0 ? "text-slate-400" : "text-emerald-600"}>
+                  {toViewPass > 0 ? `閲覧権獲得まで${toViewPass}字` : "閲覧権獲得ライン到達"}
+                </span>
+              )}
             </div>
           </div>
 
@@ -369,9 +445,9 @@ export default function PostForm({
           <button
             className="btn-primary w-full"
             disabled={toPost > 0 || !occurredYearMonth || (ngResult && !ngResult.ok)}
-            onClick={() => setStep(lane === "live" ? "account" : "evaluation")}
+            onClick={() => setStep(lane === "live" ? "account" : lane === "silent" ? "reasons" : "evaluation")}
           >
-            {lane === "live" ? "アカウント登録へ" : "評価に進む"}
+            {lane === "live" ? "アカウント登録へ" : lane === "silent" ? "理由の入力へ" : "評価に進む"}
           </button>
           {ngResult && !ngResult.ok && (
             <p className="text-center text-xs text-rose-500">投稿できない表現を修正してください。</p>
@@ -504,6 +580,64 @@ export default function PostForm({
         </div>
       )}
 
+      {step === "reasons" && (
+        <div className="card space-y-4">
+          <div>
+            <p className="text-sm font-semibold">なぜ、企業に言わなかったのですか?</p>
+            <p className="text-xs text-slate-500">
+              これは企業への告発ではなく、あなたの行動の記録です。最大2つまで選べます。
+            </p>
+          </div>
+          <div className="grid grid-cols-1 gap-1">
+            {SILENCE_REASONS.map((r) => {
+              const checked = silenceReasons.includes(r);
+              const disabled = !checked && silenceReasons.length >= MAX_SILENCE_REASONS;
+              return (
+                <label
+                  key={r}
+                  className={`flex items-center gap-2 rounded-lg border px-3 py-2 text-sm ${
+                    checked ? "border-brand-500 bg-brand-50" : disabled ? "border-slate-100 text-slate-300" : "border-slate-200"
+                  }`}
+                >
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    disabled={disabled}
+                    onChange={() => toggleReason(r)}
+                  />
+                  {SILENCE_REASON_LABELS[r as SilenceReason]}
+                </label>
+              );
+            })}
+          </div>
+          <p className="text-xs text-slate-400">選択中: {silenceReasons.length}/2</p>
+
+          <div>
+            <label className="label">この会社をまた使いますか?(任意)</label>
+            <div className="mt-1 flex gap-2">
+              <button className={`btn flex-1 ${silentWouldUseAgain === true ? "bg-brand-600 text-white" : "border border-slate-300"}`} onClick={() => setSilentWouldUseAgain(true)}>使う</button>
+              <button className={`btn flex-1 ${silentWouldUseAgain === false ? "bg-slate-700 text-white" : "border border-slate-300"}`} onClick={() => setSilentWouldUseAgain(false)}>使わない</button>
+              <button className={`btn flex-1 ${silentWouldUseAgain === null ? "bg-slate-200" : "border border-slate-300"}`} onClick={() => setSilentWouldUseAgain(null)}>未回答</button>
+            </div>
+          </div>
+          <div>
+            <label className="label">本当はどうしてほしかったですか?(任意)</label>
+            <textarea className="input h-20" value={desiredOutcome} onChange={(e) => setDesiredOutcome(e.target.value)} />
+          </div>
+
+          <button
+            className="btn-primary w-full"
+            disabled={silenceReasons.length < 1}
+            onClick={() => setStep("account")}
+          >
+            送信
+          </button>
+          <button className="text-xs text-slate-500 hover:underline" onClick={() => setStep("content")}>
+            ← 内容に戻る
+          </button>
+        </div>
+      )}
+
       {step === "account" && (
         <div className="card space-y-3">
           <p className="text-sm font-semibold">アカウント登録</p>
@@ -544,9 +678,27 @@ export default function PostForm({
           >
             {submitting ? "送信中…" : "投稿を確定する"}
           </button>
-          <button className="text-xs text-slate-500 hover:underline" onClick={() => setStep(lane === "live" ? "content" : "evaluation")}>
+          <button className="text-xs text-slate-500 hover:underline" onClick={() => setStep(lane === "live" ? "content" : lane === "silent" ? "reasons" : "evaluation")}>
             ← 戻る
           </button>
+        </div>
+      )}
+
+      {step === "done" && result?.silent && (
+        <div className="card space-y-3 text-center">
+          <div className="text-3xl">📝</div>
+          <p className="font-semibold">「言わずに終わった声」を記録しました</p>
+          <p className="text-sm text-slate-600">
+            本文50字以上のため、閲覧権(3日)を付与しました。このレポートはスコアには影響しません。
+          </p>
+          <div className="flex flex-col gap-2">
+            <button
+              className="btn-primary"
+              onClick={() => router.push(`/company/${result.companyCorporateNumber}-${result.companySlug}`)}
+            >
+              企業ページを見る
+            </button>
+          </div>
         </div>
       )}
 
@@ -589,11 +741,17 @@ export default function PostForm({
   );
 }
 
-function StepIndicator({ step }: { step: Step; lane: Lane; liveEnabled: boolean }) {
+function StepIndicator({ step, lane }: { step: Step; lane: Lane; liveEnabled: boolean }) {
+  const middle: { key: Step; label: string } =
+    lane === "silent"
+      ? { key: "reasons", label: "理由" }
+      : lane === "live"
+        ? { key: "content", label: "内容" }
+        : { key: "evaluation", label: "評価" };
   const steps: { key: Step; label: string }[] = [
     { key: "company", label: "企業" },
     { key: "content", label: "内容" },
-    { key: "evaluation", label: "評価" },
+    ...(lane === "live" ? [] : [middle]),
     { key: "account", label: "登録" },
   ];
   const activeIdx = steps.findIndex((s) => s.key === step);

@@ -139,6 +139,85 @@ export function computeCompanyScore(
   };
 }
 
+// ---------------------------------------------------------------------------
+// silent(沈黙レポート)指標: SR(沈黙率)/ UR(窓口不達率)(§7.2, §7.3)
+// AR には一切算入しない別枠指標。
+// ---------------------------------------------------------------------------
+
+export const SILENCE_REASONS = [
+  "too_much_hassle",
+  "no_contact_found",
+  "could_not_reach",
+  "no_reply_received",
+  "felt_pointless",
+  "feared_conflict",
+  "ongoing_relationship",
+  "not_worth_it",
+  "too_late",
+  "my_own_fault",
+  "other",
+] as const;
+export type SilenceReason = (typeof SILENCE_REASONS)[number];
+
+export const SILENCE_REASON_LABELS: Record<SilenceReason, string> = {
+  too_much_hassle: "面倒だった・時間がなかった",
+  no_contact_found: "連絡先が分からなかった・見つけられなかった",
+  could_not_reach: "電話やフォームが繋がらなかった",
+  no_reply_received: "問い合わせたが、返事が来なかった",
+  felt_pointless: "言っても無駄だと思った",
+  feared_conflict: "揉めるのが怖かった",
+  ongoing_relationship: "今後も利用するので、関係を壊したくなかった",
+  not_worth_it: "金額が小さく、割に合わなかった",
+  too_late: "期限が過ぎていた・手遅れだった",
+  my_own_fault: "自分にも非があると思った",
+  other: "その他",
+};
+
+// 窓口不達(unreachable)グループ。UR の算出に用いる。
+export const UNREACHABLE_REASONS: SilenceReason[] = [
+  "no_contact_found",
+  "could_not_reach",
+  "no_reply_received",
+];
+
+export const SILENT_MIN_FOR_STATS = 5; // 5件未満は非表示
+
+export interface SilentStats {
+  total: number; // past + live + silent の総件数
+  silentCount: number;
+  sr: number | null; // 沈黙率(0〜100)。総件数5件未満は null
+  ur: number | null; // 窓口不達率(0〜100)。silent5件未満は null
+  unreachableBreakdown: Record<"no_contact_found" | "could_not_reach" | "no_reply_received", number>;
+}
+
+// SR = silent ÷ (past+live+silent) ×100 / UR = unreachable ÷ silent ×100
+export function computeSilentStats(
+  totalComplaints: number,
+  silentReasonsList: string[][] // silent各件の理由配列
+): SilentStats {
+  const silentCount = silentReasonsList.length;
+  const breakdown = { no_contact_found: 0, could_not_reach: 0, no_reply_received: 0 };
+  let unreachableCount = 0;
+  for (const reasons of silentReasonsList) {
+    const hitUnreachable = reasons.some((r) => UNREACHABLE_REASONS.includes(r as SilenceReason));
+    if (hitUnreachable) unreachableCount++;
+    for (const key of Object.keys(breakdown) as (keyof typeof breakdown)[]) {
+      if (reasons.includes(key)) breakdown[key]++;
+    }
+  }
+
+  return {
+    total: totalComplaints,
+    silentCount,
+    sr: totalComplaints >= SILENT_MIN_FOR_STATS ? Math.round((silentCount / totalComplaints) * 100) : null,
+    ur:
+      silentCount >= SILENT_MIN_FOR_STATS
+        ? Math.round((unreachableCount / silentCount) * 100)
+        : null,
+    unreachableBreakdown: breakdown,
+  };
+}
+
 // 直近24ヶ月フィルタ(集計対象)。
 // past は発生時期(occurredYearMonth "YYYY-MM")、live は評価確定日で判定。
 export function within24Months(

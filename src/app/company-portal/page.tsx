@@ -2,8 +2,10 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentCompanyUser, companyHasLightPlan } from "@/lib/company-session";
-import { getCompanyScore } from "@/lib/company-score";
+import { getCompanyScore, getCompanySilentStats } from "@/lib/company-score";
+import { loadSilentReports } from "@/lib/company-page";
 import { getCompaniesWithScores } from "@/lib/home";
+import { SILENCE_REASON_LABELS, type SilenceReason } from "@/lib/scoring";
 import { companyPath } from "@/lib/company-url";
 import { ScoreNumber, ScoreBadgePill } from "@/components/ScoreBadge";
 import { MetricSummary } from "@/components/MetricSummary";
@@ -48,6 +50,10 @@ export default async function CompanyDashboard() {
     include: { messages: { orderBy: { createdAt: "asc" } }, review: true },
     orderBy: { createdAt: "desc" },
   });
+
+  // 「言われていない不満」ビュー(§6-4)
+  const silentStats = await getCompanySilentStats(company.id);
+  const silentReports = await loadSilentReports(company.id);
 
   return (
     <div className="space-y-6">
@@ -116,6 +122,74 @@ export default async function CompanyDashboard() {
           </div>
         ))}
         {reviews.length === 0 && <p className="text-sm text-slate-400">まだレビューはありません。</p>}
+      </section>
+
+      {/* 「言われていない不満」ビュー(§6-4) */}
+      <section className="space-y-3">
+        <div>
+          <h2 className="text-base font-bold">言われていない不満</h2>
+          <p className="text-xs text-slate-400">
+            貴社に一度も言われなかった不満(沈黙レポート)です。受け取り損ねている声を可視化します。
+          </p>
+        </div>
+
+        {light ? (
+          <div className="card space-y-3">
+            <div className="grid grid-cols-3 gap-2 text-center">
+              <div className="rounded-lg bg-slate-50 p-3">
+                <div className="text-lg font-bold">{silentStats.silentCount}</div>
+                <div className="text-[11px] text-slate-500">沈黙レポート件数</div>
+              </div>
+              <div className="rounded-lg bg-amber-50 p-3">
+                <div className="text-lg font-bold text-amber-800">
+                  {silentStats.sr != null ? `${silentStats.sr}%` : "集計中"}
+                </div>
+                <div className="text-[11px] text-slate-500">沈黙率(SR)</div>
+              </div>
+              <div className="rounded-lg bg-rose-50 p-3">
+                <div className="text-lg font-bold text-rose-700">
+                  {silentStats.ur != null ? `${silentStats.ur}%` : "集計中"}
+                </div>
+                <div className="text-[11px] text-slate-500">窓口不達率(UR)</div>
+              </div>
+            </div>
+            <div className="rounded-lg bg-slate-50 p-3 text-xs">
+              <p className="mb-1 font-medium text-slate-600">窓口不達の内訳</p>
+              <ul className="space-y-0.5 text-slate-600">
+                <li>連絡先が分からなかった: {silentStats.unreachableBreakdown.no_contact_found}件</li>
+                <li>電話やフォームが繋がらなかった: {silentStats.unreachableBreakdown.could_not_reach}件</li>
+                <li>問い合わせたが返事が来なかった: {silentStats.unreachableBreakdown.no_reply_received}件</li>
+              </ul>
+            </div>
+            {silentStats.ur != null && silentStats.ur > 0 && (
+              <p className="text-xs text-rose-600">
+                貴社は、不満を受け取り損ねています(窓口不達 {silentStats.ur}%)。
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="rounded-lg border border-brand-200 bg-brand-50 p-3 text-xs text-slate-600">
+            沈黙率(SR)・窓口不達率(UR)とその内訳は<strong>ライトプラン</strong>で表示されます。
+          </div>
+        )}
+
+        {/* 沈黙レポート全文(無料で閲覧可) */}
+        {silentReports.map((s) => (
+          <div key={s.id} className="card space-y-1">
+            <div className="flex flex-wrap gap-1">
+              {s.silenceReasons.map((r) => (
+                <span key={r} className="chip bg-slate-100 text-slate-600">
+                  {SILENCE_REASON_LABELS[r as SilenceReason] ?? r}
+                </span>
+              ))}
+            </div>
+            <p className="whitespace-pre-wrap text-sm text-slate-700">{s.body}</p>
+            {light && <ObjectionForm complaintId={s.id} />}
+          </div>
+        ))}
+        {silentReports.length === 0 && (
+          <p className="text-sm text-slate-400">まだ沈黙レポートはありません。</p>
+        )}
       </section>
 
       {/* ライブ非公開スレッド */}

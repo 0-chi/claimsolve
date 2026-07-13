@@ -37,6 +37,16 @@ export default function GuidePage() {
         </p>
       </section>
 
+      <section className="space-y-2">
+        <h2 className="font-bold">沈黙レポート(言わずに終わった声)の位置づけ</h2>
+        <p>
+          「言わずに終わった不満」は、企業への<strong>告発ではなく、投稿者自身の行動の自己申告</strong>です。
+          質問は「企業の落ち度」ではなく「<strong>なぜ自分は言わなかったのか</strong>」を聞きます。
+          このレポートは対応スコア(AR)には<strong>一切算入しません</strong>。企業ページでは
+          「言わずに終わった声」として別枠で表示し、沈黙率(SR)・窓口不達率(UR)として集計します。
+        </p>
+      </section>
+
       <section id="representative" className="space-y-2 scroll-mt-16">
         <h2 className="font-bold">代表レビューの選定方法</h2>
         <p>

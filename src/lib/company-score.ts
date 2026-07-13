@@ -2,13 +2,15 @@
 import { prisma } from "@/lib/prisma";
 import {
   computeCompanyScore,
+  computeSilentStats,
   within24Months,
   computeIr,
   type ScoreResult,
+  type SilentStats,
   type Outcome,
   type LiveComplaintInput,
 } from "@/lib/scoring";
-import { PUBLIC_COMPLAINT_OR } from "@/lib/queries";
+import { REVIEW_COMPLAINT_OR, publicComplaintWhere } from "@/lib/queries";
 
 export interface CompanyScoreBundle {
   recent: ScoreResult; // 直近24ヶ月
@@ -22,7 +24,7 @@ export async function getCompanyScore(companyId: string): Promise<CompanyScoreBu
   const reviews = await prisma.review.findMany({
     where: {
       companyId,
-      complaint: { OR: PUBLIC_COMPLAINT_OR },
+      complaint: { OR: REVIEW_COMPLAINT_OR },
     },
     include: { complaint: true },
   });
@@ -58,6 +60,21 @@ export async function getCompanyScore(companyId: string): Promise<CompanyScoreBu
   };
 }
 
+// 企業の沈黙指標(SR/UR)。AR とは別枠(§7.2, §7.3)。
+export async function getCompanySilentStats(companyId: string): Promise<SilentStats> {
+  const total = await prisma.complaint.count({
+    where: { companyId, ...publicComplaintWhere },
+  });
+  const silents = await prisma.complaint.findMany({
+    where: { companyId, lane: "silent", status: "published" },
+    select: { silenceReasons: true },
+  });
+  const reasonsList = silents.map((s) =>
+    (s.silenceReasons ?? "").split(",").map((r) => r.trim()).filter(Boolean)
+  );
+  return computeSilentStats(total, reasonsList);
+}
+
 // 企業の返答率(IR)。評価解禁の日数判定に使用。null=計算不能。
 export async function getCompanyReplyRate(companyId: string): Promise<number | null> {
   const liveComplaints = await prisma.complaint.findMany({
@@ -79,7 +96,7 @@ export async function getRepresentativeReviews(companyId: string, take = 2) {
   const reviews = await prisma.review.findMany({
     where: {
       companyId,
-      complaint: { OR: PUBLIC_COMPLAINT_OR },
+      complaint: { OR: REVIEW_COMPLAINT_OR },
     },
     include: { complaint: true, reply: true },
   });

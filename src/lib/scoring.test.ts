@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   computeCompanyScore,
+  computeSilentStats,
   deriveSolved,
   reachedResolution,
   within24Months,
@@ -99,6 +100,62 @@ describe("バッジ境界", () => {
     expect(badgeForAr(6.9)).toBe("fair");
     expect(badgeForAr(6.0)).toBe("fair");
     expect(badgeForAr(5.9)).toBe("needs_improvement");
+  });
+});
+
+describe("SR(沈黙率)/ UR(窓口不達率)", () => {
+  it("総件数5件未満は SR 非表示(null)", () => {
+    const s = computeSilentStats(4, [["felt_pointless"]]);
+    expect(s.sr).toBeNull();
+  });
+
+  it("SR = silent ÷ 総件数 ×100", () => {
+    // 総10件のうち silent 3件 → SR 30%
+    const s = computeSilentStats(10, [
+      ["too_much_hassle"],
+      ["felt_pointless"],
+      ["no_contact_found"],
+    ]);
+    expect(s.sr).toBe(30);
+  });
+
+  it("silent5件未満は UR 非表示、5件以上で算出", () => {
+    const under = computeSilentStats(20, [
+      ["no_contact_found"],
+      ["could_not_reach"],
+      ["felt_pointless"],
+      ["feared_conflict"],
+    ]);
+    expect(under.ur).toBeNull(); // silent4件
+
+    const ok = computeSilentStats(20, [
+      ["no_contact_found"], // 不達
+      ["could_not_reach"], // 不達
+      ["no_reply_received"], // 不達
+      ["felt_pointless"], // 非不達
+      ["feared_conflict"], // 非不達
+    ]);
+    // 5件中3件が不達 → UR 60%
+    expect(ok.ur).toBe(60);
+    expect(ok.unreachableBreakdown).toEqual({
+      no_contact_found: 1,
+      could_not_reach: 1,
+      no_reply_received: 1,
+    });
+  });
+
+  it("1件で複数理由でも不達は二重計上しない(件数ベース)", () => {
+    const s = computeSilentStats(10, [
+      ["no_contact_found", "could_not_reach"], // 不達2つだが1件
+      ["felt_pointless"],
+      ["felt_pointless"],
+      ["felt_pointless"],
+      ["felt_pointless"],
+    ]);
+    // 5件中 不達は1件 → UR 20%
+    expect(s.ur).toBe(20);
+    expect(s.unreachableBreakdown.no_contact_found).toBe(1);
+    expect(s.unreachableBreakdown.could_not_reach).toBe(1);
   });
 });
 

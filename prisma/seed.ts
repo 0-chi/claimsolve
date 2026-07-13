@@ -348,6 +348,59 @@ async function main() {
   }
   console.log("live 案件 8件");
 
+  // --- silent(沈黙レポート)20件 -----------------------------------------
+  const silenceReasonPool = [
+    ["too_much_hassle"],
+    ["no_contact_found"], // 不達
+    ["could_not_reach"], // 不達
+    ["no_reply_received"], // 不達
+    ["felt_pointless"],
+    ["feared_conflict"],
+    ["ongoing_relationship"],
+    ["not_worth_it"],
+    ["too_late"],
+    ["my_own_fault"],
+    ["no_contact_found", "felt_pointless"],
+    ["could_not_reach", "not_worth_it"],
+  ];
+  const silentBodies = [
+    "解約したかったけれど、問い合わせ窓口がどこにあるのか分からず、探すのに疲れて結局そのままにしてしまいました。誰かに相談することもなく諦めました。",
+    "電話をかけても全く繋がらず、フォームを送っても自動返信だけ。何度か試したものの、時間ばかり取られるので言うのをやめました。もう関わりたくありません。",
+    "金額としては小さかったので、わざわざ手間をかけて連絡するほどではないと判断しました。ただ、対応してほしかった気持ちは残っています。",
+    "揉めるのが怖かったし、今後も使う予定があったので、波風を立てたくなくて何も言えませんでした。本当は改善してほしかったです。",
+    "問い合わせフォームから送ったのに一週間経っても返事が来ず、催促する気力もなくなってそのまま放置してしまいました。",
+  ];
+  const silentDistribution = [6, 5, 4, 3, 1, 1]; // A..F の silent 件数(合計20)
+  let silentUserIdx = 10;
+  let silentTotal = 0;
+  for (let ci = 0; ci < companies.length; ci++) {
+    for (let k = 0; k < silentDistribution[ci]; k++) {
+      const reasons = silenceReasonPool[(ci * 2 + k) % silenceReasonPool.length];
+      const ym = monthsAgo((ci + k) % 20);
+      await prisma.complaint.create({
+        data: {
+          userId: users[silentUserIdx % users.length].id,
+          companyId: companies[ci].id,
+          lane: "silent",
+          category: companies[ci].category,
+          title: `${companies[ci].name}に言わなかった不満 #${k + 1}`,
+          body: silentBodies[(ci + k) % silentBodies.length],
+          occurredYearMonth: `${ym.getFullYear()}-${String(ym.getMonth() + 1).padStart(2, "0")}`,
+          silenceReasons: reasons.join(","),
+          silentWouldUseAgain: k % 3 === 0 ? false : k % 3 === 1 ? true : null,
+          desiredOutcome: k % 2 === 0 ? "せめて一言、謝罪と説明がほしかった。" : null,
+          status: "published",
+          publishedAt: monthsAgo((ci + k) % 18),
+          ipHash: "seed",
+          userAgent: "seed",
+        },
+      });
+      silentUserIdx++;
+      silentTotal++;
+    }
+  }
+  console.log(`silent 沈黙レポート ${silentTotal}件`);
+
   const totalPublicReviews = await prisma.review.count({
     where: { complaint: { status: { in: ["published"] } } },
   });

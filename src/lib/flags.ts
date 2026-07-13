@@ -1,7 +1,7 @@
 // フラグ管理(gate_enabled / monetization_enabled / live_enabled)。
 import { prisma } from "@/lib/prisma";
 import { shouldGateBeOn } from "@/lib/gate";
-import { publicReviewWhere } from "@/lib/queries";
+import { publicComplaintWhere } from "@/lib/queries";
 
 export type FlagKey = "gate_enabled" | "monetization_enabled" | "live_enabled";
 
@@ -44,8 +44,9 @@ export async function getGateActivatedAt(): Promise<Date | null> {
 }
 
 // 公開レビュー総数(past published + live 評価確定分)。
-export async function publicReviewCount(): Promise<number> {
-  return prisma.review.count({ where: publicReviewWhere });
+// ゲート判定用: 公開済み投稿(past+silent+live)の総数。
+export async function publicPostCount(): Promise<number> {
+  return prisma.complaint.count({ where: publicComplaintWhere });
 }
 
 // 200件超で自動ON(admin が手動上書きした場合は尊重して自動変更しない)。
@@ -54,7 +55,7 @@ export async function maybeAutoActivateGate(): Promise<boolean> {
   const manuallyOverridden = f?.updatedBy === "admin";
   if (manuallyOverridden) return f?.value ?? false;
 
-  const count = await publicReviewCount();
+  const count = await publicPostCount();
   const target = shouldGateBeOn(count);
   if (target && !(f?.value ?? false)) {
     await prisma.featureFlag.update({
