@@ -3,7 +3,7 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getFlag, getGateActivatedAt } from "@/lib/flags";
-import { isViewPassActive } from "@/lib/gate";
+import { latestAccessExpiry } from "@/lib/gate";
 
 export const SESSION_COOKIE = "cs_uid";
 
@@ -16,19 +16,21 @@ export async function getCurrentUser() {
 }
 
 // 有効な閲覧権(ViewPass or 個人閲覧プラン)を持つか。
+// 複数の権利が重なる場合は最も遅い有効期限で判定する(§4)。
 export async function hasViewAccess(userId: string): Promise<boolean> {
   const sub = await prisma.consumerSubscription.findUnique({ where: { userId } });
-  if (sub && sub.status === "active" && sub.currentPeriodEnd > new Date()) {
-    return true;
-  }
+  const subEnd =
+    sub && sub.status === "active" && sub.currentPeriodEnd > new Date()
+      ? sub.currentPeriodEnd
+      : null;
   const passes = await prisma.viewPass.findMany({ where: { userId } });
   const gateActivatedAt = await getGateActivatedAt();
-  return passes.some((p) =>
-    isViewPassActive(
-      { createdAt: p.createdAt, expiresAt: p.expiresAt },
-      gateActivatedAt
-    )
+  const expiry = latestAccessExpiry(
+    passes.map((p) => ({ createdAt: p.createdAt, expiresAt: p.expiresAt, source: p.source })),
+    subEnd,
+    gateActivatedAt
   );
+  return expiry != null && expiry > new Date();
 }
 
 // 全レビュー(本文・詳細評点)を閲覧できるか。

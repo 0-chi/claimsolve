@@ -31,13 +31,15 @@ model User {
   consumerSub         ConsumerSubscription?
   strikeRecords       Strike[]
   magicTokens         MagicToken[]
+  shareEvents         ShareEvent[]
 }
 
 // 閲覧権
+// source: review = 発行から1ヶ月 / subscription = 契約期間中 / share = 24時間
 model ViewPass {
   id             String   @id @default(cuid())
   userId         String
-  source         String // review | subscription
+  source         String // review | subscription | share
   expiresAt      DateTime
   sourceReviewId String?
   createdAt      DateTime @default(now())
@@ -47,7 +49,19 @@ model ViewPass {
   @@index([userId])
 }
 
-// 企業ウォッチ(1人 最大5社)
+// シェアイベント(24時間ViewPassの発行元。押下＝発行、7日に1回まで)
+model ShareEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  channel   String // x | line | other
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+}
+
+// 企業ウォッチ(上限は投稿由来=1社 / 個人閲覧プラン加入中=5社)
 model CompanyWatch {
   id        String   @id @default(cuid())
   userId    String

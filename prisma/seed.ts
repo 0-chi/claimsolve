@@ -50,6 +50,7 @@ async function main() {
   await prisma.report.deleteMany();
   await prisma.strike.deleteMany();
   await prisma.viewPass.deleteMany();
+  await prisma.shareEvent.deleteMany();
   await prisma.companyWatch.deleteMany();
   await prisma.consumerSubscription.deleteMany();
   await prisma.subscription.deleteMany();

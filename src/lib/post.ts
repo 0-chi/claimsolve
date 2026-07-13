@@ -8,6 +8,7 @@ import {
   canPostToday,
 } from "@/lib/post-rules";
 import { maybeAutoActivateGate } from "@/lib/flags";
+import { maxWatchFor } from "@/lib/watch";
 import { createHash, randomInt } from "node:crypto";
 import type { Outcome } from "@/lib/scoring";
 
@@ -204,9 +205,12 @@ export async function submitPastReview(input: PastReviewInput) {
     await prisma.viewPass.create({
       data: { userId: user.id, source: "review", expiresAt, sourceReviewId: review.id },
     });
-    // ウォッチ(最大5社。既に上限なら追加しない)
+    // ウォッチ(上限は購読状況で可変。既に上限なら追加しない)
+    const consumerSub = await prisma.consumerSubscription.findUnique({ where: { userId: user.id } });
+    const subActive =
+      !!consumerSub && consumerSub.status === "active" && consumerSub.currentPeriodEnd > new Date();
     const watchCount = await prisma.companyWatch.count({ where: { userId: user.id } });
-    if (watchCount < 5) {
+    if (watchCount < maxWatchFor(subActive)) {
       await prisma.companyWatch.upsert({
         where: { userId_companyId: { userId: user.id, companyId: company.id } },
         update: {},
