@@ -14,6 +14,7 @@ import {
   type StaffIssue,
 } from "@/lib/scoring";
 import { MIN_POST_CHARS, MIN_VIEWPASS_CHARS, MAX_SILENCE_REASONS, MIN_STAFF_CHARS } from "@/lib/post-rules";
+import { track } from "@/lib/track";
 
 type Lane = "past" | "live" | "silent" | "staff";
 type Step = "lane" | "company" | "content" | "evaluation" | "reasons" | "account" | "done";
@@ -75,6 +76,9 @@ export default function PostForm({
   const [contactedSlot, setContactedSlot] = useState("午前");
   const [staffIssues, setStaffIssues] = useState<string[]>([]);
 
+  // 通知の正直表示(v1.5 §1変更4): registered | has_notify | no_contact
+  const [notifyState, setNotifyState] = useState<string | null>(null);
+
   // 評価
   const [satisfaction, setSatisfaction] = useState(7);
   const [outcome, setOutcome] = useState<Outcome>("partial_refund");
@@ -116,6 +120,26 @@ export default function PostForm({
     }, 200);
     return () => clearTimeout(t);
   }, [query, newCompanyMode, company]);
+
+  // live レーンで企業が決まったら通知見込みを取得(正直表示)
+  useEffect(() => {
+    if (lane !== "live") {
+      setNotifyState(null);
+      return;
+    }
+    if (newCompanyMode) {
+      setNotifyState(newCompanyEmail.trim() ? "has_notify" : "no_contact");
+      return;
+    }
+    if (!company?.corporateNumber) {
+      setNotifyState(null);
+      return;
+    }
+    fetch(`/api/companies/status?corporateNumber=${company.corporateNumber}`)
+      .then((r) => r.json())
+      .then((j) => setNotifyState(j.state))
+      .catch(() => setNotifyState(null));
+  }, [lane, company, newCompanyMode, newCompanyEmail]);
 
   const bodyLen = body.trim().length;
   const minChars = lane === "staff" ? MIN_STAFF_CHARS : MIN_POST_CHARS;
@@ -187,6 +211,7 @@ export default function PostForm({
         return;
       }
       setResult({ ...j, silent: true });
+      track("post_complete", { lane });
       setStep("done");
     } catch {
       setError("通信エラーが発生しました。");
@@ -221,6 +246,7 @@ export default function PostForm({
         return;
       }
       setResult({ live: true, token: j.token });
+      track("post_complete", { lane });
       setStep("done");
     } catch {
       setError("通信エラーが発生しました。");
@@ -256,6 +282,7 @@ export default function PostForm({
         return;
       }
       setResult({ ...j, staff: true });
+      track("post_complete", { lane });
       setStep("done");
     } catch {
       setError("通信エラーが発生しました。");
@@ -307,6 +334,7 @@ export default function PostForm({
         return;
       }
       setResult(j);
+      track("post_complete", { lane });
       setStep("done");
     } catch {
       setError("通信エラーが発生しました。");
@@ -445,7 +473,10 @@ export default function PostForm({
           <button
             className="btn-primary w-full"
             disabled={!company?.name}
-            onClick={() => setStep("content")}
+            onClick={() => {
+              track("post_start", { lane });
+              setStep("content");
+            }}
           >
             次へ
           </button>
@@ -455,6 +486,23 @@ export default function PostForm({
       {step === "content" && (
         <div className="card space-y-3">
           <div className="text-sm font-semibold">{company?.name}</div>
+
+          {/* 通知の正直表示(liveのみ・3状態)v1.5 §1変更4 */}
+          {lane === "live" && notifyState === "registered" && (
+            <div className="rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800">
+              この企業はクレソルに登録済みです。あなたの報告は運営の確認のうえ公開され、企業に届きます。返答があれば通知します。
+            </div>
+          )}
+          {lane === "live" && notifyState === "has_notify" && (
+            <div className="rounded-lg bg-sky-50 p-3 text-xs text-sky-800">
+              この企業はまだクレソルに登録していません。報告は運営の確認のうえ公開され、通知メールも送りますが、返答があるかは分かりません。通知が届いた場合、返答がなかったことも記録として残ります。
+            </div>
+          )}
+          {lane === "live" && notifyState === "no_contact" && (
+            <div className="rounded-lg bg-slate-100 p-3 text-xs text-slate-600">
+              この企業への通知手段がまだありません。報告は運営の確認のうえ公開されますが、企業に届いたかどうかは記録されません。
+            </div>
+          )}
           <div>
             <label className="label">カテゴリ</label>
             <select className="input" value={category} onChange={(e) => setCategory(e.target.value)}>
@@ -574,6 +622,32 @@ export default function PostForm({
             NGワードチェック
           </button>
           {ngResult && <NgResultView result={ngResult} />}
+
+          {/* 離脱の受け皿(v1.5 §2): 手間→silent / 担当者の対応→staff */}
+          {(lane === "past" || lane === "live") && (
+            <div className="rounded-lg bg-slate-50 p-2 text-[11px] text-slate-500">
+              書くのが大変になったら:
+              <button
+                className="mx-1 text-brand-700 underline"
+                onClick={() => {
+                  track("lane_switch", { from: lane, to: "silent" });
+                  setLane("silent");
+                }}
+              >
+                言わずに終わった話なら、選ぶだけで記録できます(silent)
+              </button>
+              /
+              <button
+                className="mx-1 text-brand-700 underline"
+                onClick={() => {
+                  track("lane_switch", { from: lane, to: "staff" });
+                  setLane("staff");
+                }}
+              >
+                担当者の対応についてなら、企業にだけ非公開で届けられます
+              </button>
+            </div>
+          )}
 
           <button
             className="btn-primary w-full"
@@ -870,11 +944,20 @@ export default function PostForm({
           <div className="text-3xl">📨</div>
           <p className="font-semibold">進行中トラブルを受け付けました</p>
           <p className="text-sm text-slate-600">
-            運営の承認後に企業へ通知されます。専用ページのリンクをメールでお送りしました(72時間有効)。
+            運営の確認のうえ公開・通知されます。専用ページのリンクをメールでお送りしました(72時間有効)。
           </p>
           <button className="btn-primary" onClick={() => router.push(`/m/${result.token}`)}>
             専用ページを開く
           </button>
+          {/* 公的窓口への案内(v1.5 §1変更5・常設) */}
+          <div className="rounded-lg bg-slate-50 p-3 text-left text-xs text-slate-600">
+            <p className="font-semibold">まず公的窓口へ相談を。その記録をここに。</p>
+            <p className="mt-1">
+              消費者ホットライン <strong className="text-base">188</strong>(いやや)に電話すると、
+              最寄りの消費生活センターにつながります。専門相談員によるあっせん(企業への介入)は
+              公的窓口だけができる対応です。
+            </p>
+          </div>
         </div>
       )}
 

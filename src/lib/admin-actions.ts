@@ -69,10 +69,11 @@ export async function approveLiveComplaint(complaintId: string, actor = "admin")
     },
   });
   if (hasNotify) {
+    const base = process.env.APP_URL || "http://localhost:3000";
     await mailService.send({
       to: c.company.notifyEmail!,
       subject: "【クレソル】進行中トラブルの通知",
-      body: `${c.company.name} 宛に進行中のトラブルが届いています。非公開スレッドでご対応ください。`,
+      body: `${c.company.name} 宛に進行中のトラブルが届いています。非公開スレッドでご確認ください。\n詳細: ${base}/business?from=notice`,
       purpose: "live_notify",
       status: "approved",
     });

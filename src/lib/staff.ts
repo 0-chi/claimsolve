@@ -156,11 +156,13 @@ export async function submitStaffReport(input: StaffInput) {
   });
 
   // 9. 企業への着信通知(無料企業にも必ず届ける。本文は含めない)
+  //    本文は事務連絡テンプレのまま、リンクURLにのみ計測パラメータ(v1.5 D-4)
   if (company.notifyEmail) {
+    const base = process.env.APP_URL || "http://localhost:3000";
     await mailService.send({
       to: company.notifyEmail,
       subject: "【クレソル】担当者への申し出が届いています",
-      body: `${company.name} 宛に「担当者への申し出」が1件届きました。件数はダッシュボードでご確認いただけます。※本文の閲覧および傾向分析はライトプランの機能です。本申し出は公開されません。`,
+      body: `${company.name} 宛に「担当者への申し出」が1件届きました。件数はダッシュボードでご確認いただけます。本申し出は公開されません。\n詳細: ${base}/business?from=notice`,
       purpose: "staff_notify",
       status: "approved",
     });

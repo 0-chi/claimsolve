@@ -30,15 +30,15 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
           padding: 60,
         }}
       >
-        <div style={{ fontSize: 32, opacity: 0.9 }}>クレソルで解決しました</div>
-        <div style={{ fontSize: 60, fontWeight: 700, marginTop: 20, textAlign: "center" }}>
+        <div style={{ display: "flex", fontSize: 32, opacity: 0.9 }}>クレソルで解決しました</div>
+        <div style={{ display: "flex", fontSize: 60, fontWeight: 700, marginTop: 20, textAlign: "center" }}>
           {companyName}
         </div>
         <div style={{ display: "flex", gap: 40, marginTop: 30, fontSize: 40 }}>
-          {days != null && <div>{days}日で解決</div>}
-          {score != null && <div>★ {score}/10</div>}
+          {days != null ? <div style={{ display: "flex" }}>{`${days}日で解決`}</div> : null}
+          {score != null ? <div style={{ display: "flex" }}>{`${score}/10`}</div> : null}
         </div>
-        <div style={{ fontSize: 24, opacity: 0.8, marginTop: 40 }}>◎ ClaimSolve</div>
+        <div style={{ display: "flex", fontSize: 24, opacity: 0.8, marginTop: 40 }}>ClaimSolve</div>
       </div>
     ),
     { width: 1200, height: 630 }

@@ -71,7 +71,8 @@ async function main() {
     data: [
       { key: "gate_enabled", value: false, updatedBy: "seed" },
       { key: "monetization_enabled", value: false, updatedBy: "seed" },
-      { key: "live_enabled", value: false, updatedBy: "seed" }, // 初期値OFF
+      // マーケ設計書v1.5 §1変更3: live は初期値ON(緊急停止用にOFF切替可)
+      { key: "live_enabled", value: true, updatedBy: "seed" },
     ],
   });
 

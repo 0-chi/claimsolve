@@ -7,6 +7,7 @@ import { getCompanyScore, getRepresentativeReviews, getCompanySilentStats, getCo
 import { loadCompanyReviews, loadLiveFacts, loadSilentReports } from "@/lib/company-page";
 import { SilentCard } from "@/components/SilentCard";
 import { canViewAllReviews } from "@/lib/session";
+import { companyHasPublicPage } from "@/lib/company-visibility";
 import { getFlag, maybeAutoActivateGate } from "@/lib/flags";
 import { ScoreBadgePill, ScoreNumber } from "@/components/ScoreBadge";
 import { MetricSummary } from "@/components/MetricSummary";
@@ -26,9 +27,13 @@ async function getCompany(param: string) {
 export async function generateMetadata({ params }: { params: { param: string } }): Promise<Metadata> {
   const company = await getCompany(params.param);
   if (!company) return { title: "企業が見つかりません | クレソル" };
+  const base = process.env.APP_URL || "http://localhost:3000";
+  const ogImage = `${base}/api/og/company/${company.corporateNumber}`;
   return {
     title: `${company.name}のクレーム対応 評判・スコア | クレソル`,
     description: `${company.name}のカスタマーサポート・クレーム対応の評判とスコア。`,
+    openGraph: { images: [ogImage] },
+    twitter: { card: "summary_large_image", images: [ogImage] },
   };
 }
 
@@ -42,6 +47,9 @@ export default async function CompanyPage({
   await maybeAutoActivateGate();
   const company = await getCompany(params.param);
   if (!company) notFound();
+
+  // 公開投稿0件の企業ページは生成しない(薄いページ対策・staffは数えない)v1.5 §1変更6
+  if (!(await companyHasPublicPage(company.id))) notFound();
 
   const period = searchParams.period === "all" ? "all" : "recent";
   const scoreBundle = await getCompanyScore(company.id);

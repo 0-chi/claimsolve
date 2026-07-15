@@ -1,15 +1,17 @@
 import type { MetadataRoute } from "next";
-import { prisma } from "@/lib/prisma";
 import { companyPath } from "@/lib/company-url";
+import { companiesWithPublicPosts } from "@/lib/company-visibility";
 import { CATEGORY_LABELS } from "@/lib/labels";
+import { ARTICLES } from "@/content/articles";
 
 export const dynamic = "force-dynamic";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = process.env.APP_URL || "http://localhost:3000";
-  const companies = await prisma.company.findMany();
+  // 公開投稿0件の企業はインデックスさせない(v1.5 §1変更6・staffは数えない)
+  const companies = await companiesWithPublicPosts();
 
-  const staticRoutes = ["", "/search", "/guide", "/terms", "/privacy", "/tokushoho", "/for-companies"].map(
+  const staticRoutes = ["", "/search", "/guide", "/terms", "/privacy", "/tokushoho", "/business"].map(
     (p) => ({ url: `${base}${p}`, lastModified: new Date() })
   );
 
@@ -23,5 +25,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     lastModified: new Date(),
   }));
 
-  return [...staticRoutes, ...companyRoutes, ...guideRoutes];
+  const articleRoutes = ARTICLES.map((a) => ({
+    url: `${base}/guide/articles/${a.slug}`,
+    lastModified: new Date(),
+  }));
+
+  return [...staticRoutes, ...companyRoutes, ...guideRoutes, ...articleRoutes];
 }

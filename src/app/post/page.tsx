@@ -15,7 +15,15 @@ export default async function PostPage({
     const c = await prisma.company.findUnique({
       where: { corporateNumber: searchParams.company },
     });
-    if (c) presetCompany = { corporateNumber: c.corporateNumber, name: c.name };
+    if (c) {
+      presetCompany = { corporateNumber: c.corporateNumber, name: c.name };
+    } else {
+      // 法人マスタのみ(未昇格)の企業もプリセット可(投稿時に昇格される)
+      const m = await prisma.corporateMaster.findUnique({
+        where: { corporateNumber: searchParams.company },
+      });
+      if (m) presetCompany = { corporateNumber: m.corporateNumber, name: m.name };
+    }
   }
 
   return (

@@ -41,7 +41,7 @@ export function Footer() {
           <Link href="/privacy" className="hover:text-brand-700">プライバシーポリシー</Link>
           <Link href="/tokushoho" className="hover:text-brand-700">特定商取引法に基づく表記</Link>
           <Link href="/request" className="hover:text-brand-700">削除・開示請求</Link>
-          <Link href="/for-companies" className="hover:text-brand-700">企業の方へ</Link>
+          <Link href="/business" className="hover:text-brand-700">企業の方へ</Link>
         </nav>
         <p className="pt-2 text-slate-400">© クレソル(ClaimSolve)— クレーム対応を評価するレビューサイト</p>
       </div>

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { prisma } from "@/lib/prisma";
 import { getCurrentCompanyUser, companyHasLightPlan } from "@/lib/company-session";
 import { getCompanyScore, getCompanySilentStats, getCompanyCr } from "@/lib/company-score";
+import { companyHasPublicPage } from "@/lib/company-visibility";
 import { loadSilentReports } from "@/lib/company-page";
 import { getCompaniesWithScores } from "@/lib/home";
 import {
@@ -80,6 +81,9 @@ export default async function CompanyDashboard() {
   // 対策報告率(CR)(§7.4)
   const cr = await getCompanyCr(company.id);
 
+  // 公開投稿0件なら公開ページは存在しない(v1.5 §1変更6)
+  const hasPublicPage = await companyHasPublicPage(company.id);
+
   // 「担当者への申し出」(§5.9)。無料=件数のみ / ライトプラン=本文+分析
   const staffComplaints = await prisma.complaint.findMany({
     where: { companyId: company.id, lane: "staff", status: { notIn: ["removed"] } },
@@ -123,9 +127,15 @@ export default async function CompanyDashboard() {
       <section className="card space-y-3">
         <div className="flex items-start justify-between">
           <div>
-            <Link href={companyPath(company)} className="text-xs text-brand-700 hover:underline">
-              公開ページを見る →
-            </Link>
+            {hasPublicPage ? (
+              <Link href={companyPath(company)} className="text-xs text-brand-700 hover:underline">
+                公開ページを見る →
+              </Link>
+            ) : (
+              <span className="text-xs text-slate-400">
+                公開ページは最初の投稿が届いた時点で作成されます
+              </span>
+            )}
           </div>
           <div className="text-right">
             <ScoreNumber ar={score.ar} aggregating={score.aggregating} />

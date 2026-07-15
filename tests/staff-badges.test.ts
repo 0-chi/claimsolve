@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { submitStaffReport } from "@/lib/staff";
 import { confirmResolution } from "@/lib/live";
 import { publicPostCount } from "@/lib/flags";
+import { companyHasPublicPage, companyPublicPostCount } from "@/lib/company-visibility";
 import { getCompanyScore, getCompanySilentStats, getCompanyCr } from "@/lib/company-score";
 import { PostError } from "@/lib/post";
 import { randomBytes } from "node:crypto";
@@ -118,6 +119,60 @@ describe("staff(担当者への申し出)の非公開性とスコア除外", () 
       where: { reason: { contains: "staff_flood" } },
     });
     expect(flood).not.toBeNull();
+  });
+});
+
+describe("投稿0件の企業ページ非生成(v1.5 §1変更6)", () => {
+  it("staffのみの企業は『公開投稿0件』扱いでページを持たない", async () => {
+    const c = await prisma.company.create({
+      data: {
+        corporateNumber: "9100000000002",
+        name: "0件テスト社",
+        slug: "zerotest",
+        address: "x",
+        category: "rental",
+      },
+    });
+    // 初期状態: 0件 → ページなし
+    expect(await companyHasPublicPage(c.id)).toBe(false);
+
+    const user = await prisma.user.create({
+      data: { displayName: "ゼロ件主", email: "zero@example.com", phone: "09088880100" },
+    });
+    // staff投稿を追加しても公開投稿には数えない
+    await prisma.complaint.create({
+      data: {
+        userId: user.id,
+        companyId: c.id,
+        lane: "staff",
+        category: "rental",
+        title: "staff",
+        body: "z".repeat(80),
+        department: "d",
+        contactChannel: "phone",
+        contactedAt: "2026-07-01 午前",
+        status: "delivered",
+      },
+    });
+    expect(await companyPublicPostCount(c.id)).toBe(0);
+    expect(await companyHasPublicPage(c.id)).toBe(false);
+
+    // silent が1件公開されたらページが生まれる
+    await prisma.complaint.create({
+      data: {
+        userId: user.id,
+        companyId: c.id,
+        lane: "silent",
+        category: "rental",
+        title: "s",
+        body: "b".repeat(50),
+        occurredYearMonth: "2026-06",
+        silenceReasons: "felt_pointless",
+        status: "published",
+        publishedAt: new Date(),
+      },
+    });
+    expect(await companyHasPublicPage(c.id)).toBe(true);
   });
 });
 

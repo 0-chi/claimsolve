@@ -60,6 +60,17 @@ export default async function MagicPage({ params }: { params: { token: string } 
         </div>
       )}
 
+      {/* 公的窓口への案内(v1.5 §1変更5・常設) */}
+      {c.lane === "live" && (
+        <div className="rounded-lg bg-slate-50 p-3 text-xs text-slate-600">
+          <p className="font-semibold">まず公的窓口へ相談を。その記録をここに。</p>
+          <p className="mt-1">
+            消費者ホットライン <strong className="text-base">188</strong>(いやや)/最寄りの消費生活センター。
+            専門相談員によるあっせん(企業への介入)は公的窓口だけができる対応です。
+          </p>
+        </div>
+      )}
+
       <MagicClient
         token={params.token}
         lane={c.lane}
