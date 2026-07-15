@@ -62,6 +62,7 @@ export default async function MagicPage({ params }: { params: { token: string } 
 
       <MagicClient
         token={params.token}
+        lane={c.lane}
         messages={c.messages.map((m) => ({ senderType: m.senderType, body: m.body }))}
         unlock={unlock ? { unlocked: unlock.unlocked, unlockAt: unlock.unlockAt?.toISOString() ?? null, thresholdDays: unlock.thresholdDays } : null}
         hasReview={!!c.review}
@@ -71,6 +72,13 @@ export default async function MagicPage({ params }: { params: { token: string } 
             : null
         }
         disputed={c.objections.some((o) => o.status === "kept_disputed")}
+        companyReplied={!!c.firstReplyAt}
+        hasResolutionBadge={!!c.resolutionBadge}
+        offer={
+          c.resolutionOffer
+            ? { body: c.resolutionOffer.body, status: c.resolutionOffer.status, companyName: c.company.name }
+            : null
+        }
       />
     </div>
   );

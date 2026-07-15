@@ -38,8 +38,11 @@ async function main() {
   console.log("シード開始…");
 
   // 依存順にクリア
-  await prisma.improvementNoteReview.deleteMany();
-  await prisma.improvementNote.deleteMany();
+  await prisma.actionNoteComplaint.deleteMany();
+  await prisma.actionNote.deleteMany();
+  await prisma.resolutionBadge.deleteMany();
+  await prisma.resolutionOffer.deleteMany();
+  await prisma.helpfulMark.deleteMany();
   await prisma.reviewReply.deleteMany();
   await prisma.sameVote.deleteMany();
   await prisma.objection.deleteMany();
@@ -229,7 +232,7 @@ async function main() {
   }
   console.log(`past レビュー ${pastCount}件`);
 
-  // 公開返信 + 改善済みバッジのサンプル(1社目のライトプラン企業)
+  // 公開返信 + 対策バッジのサンプル(1社目のライトプラン企業)
   const firstCompanyReviews = await prisma.review.findMany({
     where: { companyId: companies[0].id },
     take: 2,
@@ -242,18 +245,22 @@ async function main() {
         body: "この度はご不便をおかけし申し訳ありませんでした。窓口体制を見直し、折り返しまでの時間短縮に取り組んでおります。",
       },
     });
-    const note = await prisma.improvementNote.create({
+    // 対策バッジ(80字以上・投稿に紐付け)
+    const note = await prisma.actionNote.create({
       data: {
         companyId: companies[0].id,
-        body: "ご指摘を受けて、解約専用の受付窓口を新設し、平均折り返し時間を2営業日から当日対応へ短縮しました。",
-        editHistory: "[]",
+        body: "ご指摘を受けて、解約専用の受付窓口を2026年6月に新設し、専任スタッフを3名配置しました。これにより平均折り返し時間を従来の2営業日から当日中の対応へ短縮しています。今後も毎月の応対品質レビューで改善を続けます。",
       },
     });
     for (const r of firstCompanyReviews) {
-      await prisma.improvementNoteReview.create({
-        data: { noteId: note.id, reviewId: r.id },
+      await prisma.actionNoteComplaint.create({
+        data: { noteId: note.id, complaintId: r.complaintId },
       });
     }
+    // 「参考になった」マークのサンプル
+    await prisma.helpfulMark.create({
+      data: { companyId: companies[0].id, complaintId: firstCompanyReviews[0].complaintId },
+    });
   }
 
   // --- live案件8件(live_enabled=OFF のままデータのみ投入)-----------------
@@ -400,6 +407,69 @@ async function main() {
     }
   }
   console.log(`silent 沈黙レポート ${silentTotal}件`);
+
+  // --- 解決済みバッジのサンプル(resolved の live 案件に投稿者が確定)------
+  const resolvedLive = await prisma.complaint.findFirst({
+    where: { lane: "live", status: "resolved" },
+  });
+  if (resolvedLive) {
+    await prisma.resolutionBadge.create({
+      data: {
+        complaintId: resolvedLive.id,
+        confirmedByUserId: resolvedLive.userId,
+        source: "live_reply",
+        praisePoints: "fast_response,listened_well",
+        praiseComment: "担当の方が最後まで丁寧に対応してくれました。",
+      },
+    });
+  }
+
+  // --- staff(担当者への申し出)3件。完全非公開・スコア非算入 --------------
+  const staffSamples = [
+    {
+      department: "コールセンター",
+      contactChannel: "phone",
+      contactedAt: "2026-06-20 午後",
+      staffIssues: "high_handed,interrupted",
+      body: "解約の相談で電話した際、話の途中で何度も遮られ、高圧的な言い方をされました。手続き自体は完了しましたが、対応のたびに強い不安を感じたため、社内での共有をお願いしたく記録します。",
+    },
+    {
+      department: "渋谷店",
+      contactChannel: "in_store",
+      contactedAt: "2026-06-25 夕方",
+      staffIssues: "promise_broken",
+      body: "店頭で「明日までに折り返します」と約束されましたが、1週間経っても連絡がありませんでした。再訪してようやく対応いただけましたが、約束が守られなかった経緯を伝えたく申し出ます。",
+    },
+    {
+      department: "サポート窓口",
+      contactChannel: "chat",
+      contactedAt: "2026-07-01 午前",
+      staffIssues: "too_slow",
+      body: "チャットで問い合わせたところ、一つの質問への返答に毎回30分以上かかり、最終的に回答が得られないまま切断されました。混雑していたのかもしれませんが、改善の参考になればと思い記録します。",
+    },
+  ];
+  for (let i = 0; i < staffSamples.length; i++) {
+    const s = staffSamples[i];
+    await prisma.complaint.create({
+      data: {
+        userId: users[(i + 5) % users.length].id,
+        companyId: companies[0].id,
+        lane: "staff",
+        category: companies[0].category,
+        title: `担当者への申し出(${s.department})`,
+        body: s.body,
+        department: s.department,
+        contactChannel: s.contactChannel,
+        contactedAt: s.contactedAt,
+        staffIssues: s.staffIssues,
+        status: "delivered",
+        notifiedAt: monthsAgo(0),
+        ipHash: "seed",
+        userAgent: "seed",
+      },
+    });
+  }
+  console.log("staff 担当者への申し出 3件(非公開)");
 
   const totalPublicReviews = await prisma.review.count({
     where: { complaint: { status: { in: ["published"] } } },

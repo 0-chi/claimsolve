@@ -5,8 +5,13 @@ import {
   bodyCounterState,
   canAddReviewForCompany,
   canAddSilentForCompany,
+  canAddStaffForCompany,
+  canPostStaffBody,
   canPostToday,
   validSilenceReasons,
+  validActionNoteBody,
+  validOfferBody,
+  canAddHelpfulToday,
 } from "./post-rules";
 
 const repeat = (n: number) => "あ".repeat(n);
@@ -54,6 +59,35 @@ describe("1日の投稿数制限", () => {
     expect(canPostToday(0)).toBe(true);
     expect(canPostToday(1)).toBe(true);
     expect(canPostToday(2)).toBe(false);
+  });
+});
+
+describe("staff(担当者への申し出)の制限", () => {
+  it("本文80字未満は投稿不可", () => {
+    expect(canPostStaffBody(repeat(79))).toBe(false);
+    expect(canPostStaffBody(repeat(80))).toBe(true);
+  });
+  it("同一企業への staff は2件まで", () => {
+    expect(canAddStaffForCompany(0)).toBe(true);
+    expect(canAddStaffForCompany(1)).toBe(true);
+    expect(canAddStaffForCompany(2)).toBe(false);
+  });
+});
+
+describe("対策バッジ/解決の申し出/参考になった の制限", () => {
+  it("対策バッジ本文は80字以上500字以下", () => {
+    expect(validActionNoteBody(repeat(79))).toBe(false);
+    expect(validActionNoteBody(repeat(80))).toBe(true);
+    expect(validActionNoteBody(repeat(500))).toBe(true);
+    expect(validActionNoteBody(repeat(501))).toBe(false);
+  });
+  it("解決の申し出は80字以上", () => {
+    expect(validOfferBody(repeat(79))).toBe(false);
+    expect(validOfferBody(repeat(80))).toBe(true);
+  });
+  it("「参考になった」は1企業1日10件まで", () => {
+    expect(canAddHelpfulToday(9)).toBe(true);
+    expect(canAddHelpfulToday(10)).toBe(false);
   });
 });
 

@@ -1,18 +1,33 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { OUTCOME_LABELS, type Outcome } from "@/lib/scoring";
+import { OUTCOME_LABELS, PRAISE_POINT_LABELS, type Outcome } from "@/lib/scoring";
 
 interface Props {
   token: string;
+  lane: string;
   messages: { senderType: string; body: string }[];
   unlock: { unlocked: boolean; unlockAt: string | null; thresholdDays: number } | null;
   hasReview: boolean;
   objection: { id: string; reason: string; deadline: string } | null;
   disputed: boolean;
+  companyReplied: boolean;
+  hasResolutionBadge: boolean;
+  offer: { body: string; status: string; companyName: string } | null;
 }
 
-export default function MagicClient({ token, messages, unlock, hasReview, objection, disputed }: Props) {
+export default function MagicClient({
+  token,
+  lane,
+  messages,
+  unlock,
+  hasReview,
+  objection,
+  disputed,
+  companyReplied,
+  hasResolutionBadge,
+  offer,
+}: Props) {
   const router = useRouter();
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
@@ -65,6 +80,23 @@ export default function MagicClient({ token, messages, unlock, hasReview, object
     router.refresh();
   }
 
+  async function respondOffer(decision: "accept" | "decline") {
+    setBusy(true);
+    await fetch("/api/resolution/offer-respond", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, decision }),
+    });
+    setBusy(false);
+    router.refresh();
+  }
+
+  // 解決済みバッジを確定できる状態か(§5.7-(2))
+  const canConfirmResolution =
+    !hasResolutionBadge &&
+    ((lane === "live" && companyReplied) ||
+      (lane === "past" && offer?.status === "accepted"));
+
   return (
     <div className="space-y-4">
       {disputed && (
@@ -85,7 +117,43 @@ export default function MagicClient({ token, messages, unlock, hasReview, object
         </div>
       )}
 
-      {/* 非公開スレッド */}
+      {/* 解決の申し出(past・企業から) */}
+      {offer && (
+        <div className="card space-y-2 border-brand-200">
+          <h2 className="text-sm font-bold">{offer.companyName} からの解決の申し出</h2>
+          <p className="whitespace-pre-wrap text-sm text-slate-700">{offer.body}</p>
+          <p className="text-xs text-slate-400">
+            応じるかどうかはあなたの自由です。断っても・無視しても不利益はありません。
+            あなたの連絡先が企業に開示されることはありません。
+          </p>
+          {offer.status === "sent" && (
+            <div className="flex gap-2">
+              <button className="btn-primary flex-1 text-xs" disabled={busy} onClick={() => respondOffer("accept")}>
+                応じる
+              </button>
+              <button className="btn-outline flex-1 text-xs" disabled={busy} onClick={() => respondOffer("decline")}>
+                断る
+              </button>
+            </div>
+          )}
+          {offer.status === "accepted" && (
+            <p className="text-xs text-emerald-700">申し出に応じました。対応が完了したら、下の「解決済みにする」で確定できます。</p>
+          )}
+          {offer.status === "declined" && <p className="text-xs text-slate-500">申し出を断りました。</p>}
+        </div>
+      )}
+
+      {/* 解決済みバッジの確定(投稿者のみ) */}
+      {canConfirmResolution && <ResolutionConfirm token={token} busy={busy} />}
+      {hasResolutionBadge && (
+        <div className="rounded-lg bg-emerald-50 p-3 text-xs text-emerald-700">
+          ✓ この件は「解決済み」として確定されています。
+        </div>
+      )}
+
+      {/* 非公開スレッド + 評価(live のみ) */}
+      {lane === "live" && (
+      <>
       <div className="card space-y-2">
         <h2 className="text-sm font-bold">非公開スレッド</h2>
         <div className="space-y-2">
@@ -150,6 +218,79 @@ export default function MagicClient({ token, messages, unlock, hasReview, object
           )}
         </div>
       )}
+      </>
+      )}
+    </div>
+  );
+}
+
+// 解決済みバッジの確定フォーム(投稿者のみ・§5.7-(2))
+function ResolutionConfirm({ token, busy }: { token: string; busy: boolean }) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [points, setPoints] = useState<string[]>([]);
+  const [comment, setComment] = useState("");
+  const [sending, setSending] = useState(false);
+  const [err, setErr] = useState("");
+
+  async function confirm() {
+    setSending(true);
+    setErr("");
+    const r = await fetch("/api/resolution/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, praisePoints: points, praiseComment: comment }),
+    });
+    const j = await r.json();
+    setSending(false);
+    if (!j.ok) {
+      setErr(j.message ?? "確定に失敗しました。");
+      return;
+    }
+    router.refresh();
+  }
+
+  if (!open) {
+    return (
+      <div className="card space-y-2 border-emerald-200">
+        <h2 className="text-sm font-bold">この件、解決しましたか?</h2>
+        <p className="text-xs text-slate-500">
+          解決済みバッジを付けられるのはあなただけです。企業は付けられません。
+        </p>
+        <button className="btn-primary w-full text-sm" disabled={busy} onClick={() => setOpen(true)}>
+          解決済みにする
+        </button>
+      </div>
+    );
+  }
+  return (
+    <div className="card space-y-3 border-emerald-200">
+      <h2 className="text-sm font-bold">解決済みの確定</h2>
+      <div>
+        <label className="label">良かった点(任意・複数選択)</label>
+        <div className="mt-1 flex flex-wrap gap-1">
+          {Object.entries(PRAISE_POINT_LABELS).map(([k, v]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() =>
+                setPoints((prev) => (prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]))
+              }
+              className={`chip ${points.includes(k) ? "bg-emerald-600 text-white" : "bg-white ring-1 ring-slate-200"}`}
+            >
+              {v}
+            </button>
+          ))}
+        </div>
+      </div>
+      <div>
+        <label className="label">称賛コメント(任意・公開されます)</label>
+        <textarea className="input h-20" value={comment} onChange={(e) => setComment(e.target.value)} />
+      </div>
+      {err && <p className="text-xs text-rose-500">{err}</p>}
+      <button className="btn-primary w-full" disabled={sending} onClick={confirm}>
+        {sending ? "確定中…" : "解決済みとして確定する"}
+      </button>
     </div>
   );
 }

@@ -218,6 +218,87 @@ export function computeSilentStats(
   };
 }
 
+// ---------------------------------------------------------------------------
+// staff(担当者への申し出)enum(§4)。完全非公開レーン。スコア非算入。
+// ---------------------------------------------------------------------------
+
+export const STAFF_CHANNELS = ["phone", "in_store", "visit", "chat"] as const;
+export type StaffChannel = (typeof STAFF_CHANNELS)[number];
+export const STAFF_CHANNEL_LABELS: Record<StaffChannel, string> = {
+  phone: "電話",
+  in_store: "店頭",
+  visit: "訪問",
+  chat: "チャット",
+};
+
+export const STAFF_ISSUES = [
+  "high_handed",
+  "interrupted",
+  "bounced_around",
+  "promise_broken",
+  "false_explanation",
+  "dismissive",
+  "too_slow",
+] as const;
+export type StaffIssue = (typeof STAFF_ISSUES)[number];
+export const STAFF_ISSUE_LABELS: Record<StaffIssue, string> = {
+  high_handed: "言い方が高圧的だった",
+  interrupted: "話を遮られた",
+  bounced_around: "たらい回しにされた",
+  promise_broken: "約束が守られなかった",
+  false_explanation: "説明が事実と違った",
+  dismissive: "個人的な事情を軽視された",
+  too_slow: "対応が遅すぎた",
+};
+
+// 解決済みバッジの「良かった点」(§5.7-(2))
+export const PRAISE_POINTS = [
+  "fast_response",
+  "listened_well",
+  "clear_explanation",
+  "beyond_expectation",
+  "good_attitude",
+  "prevention_explained",
+] as const;
+export type PraisePoint = (typeof PRAISE_POINTS)[number];
+export const PRAISE_POINT_LABELS: Record<PraisePoint, string> = {
+  fast_response: "対応が早かった",
+  listened_well: "話をちゃんと聞いてくれた",
+  clear_explanation: "説明が分かりやすかった",
+  beyond_expectation: "期待以上の対応だった",
+  good_attitude: "担当者の態度が良かった",
+  prevention_explained: "再発防止まで説明してくれた",
+};
+
+// ---------------------------------------------------------------------------
+// CR(対策報告率)(§7.4)。常時公開位置に表示。AR には算入しない。
+// 改善余地レビュー = 納得度6以下(4・5・6)の past/live レビュー。
+// ---------------------------------------------------------------------------
+
+export const CR_LOW_SATISFACTION_MAX = 6;
+export const CR_MIN_FOR_STATS = 5; // 改善余地レビュー5件未満は非表示
+
+export interface CrStats {
+  lowReviewTotal: number; // 改善余地レビューの総件数(分母)
+  lowReviewWithAction: number; // うち対策バッジ(published)が紐付いた件数
+  cr: number | null; // 0〜100。分母5件未満は null(集計中)
+  retractedCount: number; // 取り消された対策報告の件数(併記)
+}
+
+export function computeCr(
+  lowReviews: { hasPublishedAction: boolean }[],
+  retractedCount: number
+): CrStats {
+  const total = lowReviews.length;
+  const withAction = lowReviews.filter((r) => r.hasPublishedAction).length;
+  return {
+    lowReviewTotal: total,
+    lowReviewWithAction: withAction,
+    cr: total >= CR_MIN_FOR_STATS ? Math.round((withAction / total) * 100) : null,
+    retractedCount,
+  };
+}
+
 // 直近24ヶ月フィルタ(集計対象)。
 // past は発生時期(occurredYearMonth "YYYY-MM")、live は評価確定日で判定。
 export function within24Months(

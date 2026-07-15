@@ -128,6 +128,8 @@ export async function loadMagicComplaint(token: string) {
           messages: { orderBy: { createdAt: "asc" } },
           review: true,
           objections: { orderBy: { createdAt: "desc" } },
+          resolutionBadge: true,
+          resolutionOffer: true,
         },
       },
     },
@@ -135,6 +137,76 @@ export async function loadMagicComplaint(token: string) {
   if (!mt) return null;
   if (mt.expiresAt < new Date()) return { expired: true as const, mt: null };
   return { expired: false as const, mt };
+}
+
+// ---------------------------------------------------------------------------
+// 解決済みバッジ(§5.7-(2))。投稿者だけが確定できる。
+//   live: 企業の返信が記録された後
+//   past: 「解決の申し出」に投稿者が応じた(accepted)後
+// ---------------------------------------------------------------------------
+export async function confirmResolution(
+  token: string,
+  input: { praisePoints?: string[]; praiseComment?: string }
+) {
+  const mt = await prisma.magicToken.findUnique({
+    where: { token },
+    include: { complaint: { include: { resolutionBadge: true, resolutionOffer: true } } },
+  });
+  if (!mt || mt.expiresAt < new Date()) throw new PostError("invalid_token", "リンクが無効です。");
+  const c = mt.complaint;
+  if (c.resolutionBadge) throw new PostError("already", "すでに解決済みバッジが付いています。");
+
+  let source: "live_reply" | "past_offer";
+  if (c.lane === "live") {
+    if (!c.firstReplyAt) {
+      throw new PostError("not_eligible", "企業の返信が記録された後に確定できます。");
+    }
+    source = "live_reply";
+  } else if (c.lane === "past") {
+    if (c.resolutionOffer?.status !== "accepted") {
+      throw new PostError("not_eligible", "企業からの解決の申し出に応じた後に確定できます。");
+    }
+    source = "past_offer";
+  } else {
+    throw new PostError("not_eligible", "このレーンでは解決済みバッジを付けられません。");
+  }
+
+  const praiseComment = (input.praiseComment ?? "").trim();
+  if (praiseComment && !moderationService.check(praiseComment).ok) {
+    throw new PostError("ng_hard", "称賛コメントに投稿できない表現が含まれています。");
+  }
+
+  await prisma.resolutionBadge.create({
+    data: {
+      complaintId: c.id,
+      confirmedByUserId: mt.userId,
+      source,
+      praisePoints: (input.praisePoints ?? []).join(","),
+      praiseComment,
+    },
+  });
+  if (c.lane === "live" && !["resolved", "unresolved"].includes(c.status)) {
+    await prisma.complaint.update({ where: { id: c.id }, data: { status: "resolved" } });
+  }
+  return { source };
+}
+
+// 解決の申し出への応答(投稿者)。応じる/断る。断っても不利益はない。
+export async function respondOffer(token: string, decision: "accept" | "decline") {
+  const mt = await prisma.magicToken.findUnique({
+    where: { token },
+    include: { complaint: { include: { resolutionOffer: true } } },
+  });
+  if (!mt || mt.expiresAt < new Date()) throw new PostError("invalid_token", "リンクが無効です。");
+  const offer = mt.complaint.resolutionOffer;
+  if (!offer || offer.status !== "sent") {
+    throw new PostError("not_found", "応答できる申し出がありません。");
+  }
+  await prisma.resolutionOffer.update({
+    where: { id: offer.id },
+    data: { status: decision === "accept" ? "accepted" : "declined", respondedAt: new Date() },
+  });
+  return { status: decision === "accept" ? "accepted" : "declined" };
 }
 
 // 評価解禁判定(企業返答 or 7/14日経過)。

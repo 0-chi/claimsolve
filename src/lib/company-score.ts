@@ -3,10 +3,13 @@ import { prisma } from "@/lib/prisma";
 import {
   computeCompanyScore,
   computeSilentStats,
+  computeCr,
   within24Months,
   computeIr,
+  CR_LOW_SATISFACTION_MAX,
   type ScoreResult,
   type SilentStats,
+  type CrStats,
   type Outcome,
   type LiveComplaintInput,
 } from "@/lib/scoring";
@@ -73,6 +76,31 @@ export async function getCompanySilentStats(companyId: string): Promise<SilentSt
     (s.silenceReasons ?? "").split(",").map((r) => r.trim()).filter(Boolean)
   );
   return computeSilentStats(total, reasonsList);
+}
+
+// 企業の対策報告率(CR)(§7.4)。常時公開位置に表示。ARには算入しない。
+export async function getCompanyCr(companyId: string): Promise<CrStats> {
+  const lowReviews = await prisma.review.findMany({
+    where: {
+      companyId,
+      satisfaction: { lte: CR_LOW_SATISFACTION_MAX },
+      complaint: { OR: REVIEW_COMPLAINT_OR },
+    },
+    select: {
+      complaint: {
+        select: { actionLinks: { select: { note: { select: { status: true } } } } },
+      },
+    },
+  });
+  const retractedCount = await prisma.actionNote.count({
+    where: { companyId, status: "retracted" },
+  });
+  return computeCr(
+    lowReviews.map((r) => ({
+      hasPublishedAction: r.complaint.actionLinks.some((l) => l.note.status === "published"),
+    })),
+    retractedCount
+  );
 }
 
 // 企業の返答率(IR)。評価解禁の日数判定に使用。null=計算不能。

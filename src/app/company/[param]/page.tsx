@@ -3,7 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { parseCompanyParam } from "@/lib/company-url";
-import { getCompanyScore, getRepresentativeReviews, getCompanySilentStats } from "@/lib/company-score";
+import { getCompanyScore, getRepresentativeReviews, getCompanySilentStats, getCompanyCr } from "@/lib/company-score";
 import { loadCompanyReviews, loadLiveFacts, loadSilentReports } from "@/lib/company-page";
 import { SilentCard } from "@/components/SilentCard";
 import { canViewAllReviews } from "@/lib/session";
@@ -51,6 +51,11 @@ export default async function CompanyPage({
   const liveEnabled = await getFlag("live_enabled");
   const silentStats = await getCompanySilentStats(company.id);
   const silentReports = gate.allowed ? await loadSilentReports(company.id) : [];
+  const cr = await getCompanyCr(company.id);
+
+  // 対策バッジ付きの投稿は、バッジ本文と投稿本文をセットで常時公開する(§5.2)
+  const allForBadges = await loadCompanyReviews(company.id, "all");
+  const badgedReviews = allForBadges.filter((r) => (r.actionNotes?.length ?? 0) > 0);
 
   const allReviews = gate.allowed ? await loadCompanyReviews(company.id, period) : [];
   const repIds = new Set(reps.map((r) => r.id));
@@ -124,6 +129,22 @@ export default async function CompanyPage({
             「企業に一度も言わなかった」人からのものです。
           </div>
         )}
+
+        {/* 対策報告率 CR(常時公開・ARとは別枠)(§7.4) */}
+        {cr.cr != null ? (
+          <div className="rounded-lg bg-brand-50 p-3 text-xs text-brand-700">
+            改善余地のあるレビュー <strong>{cr.lowReviewTotal}件</strong> のうち、
+            <strong>{cr.lowReviewWithAction}件</strong> に対策が報告されています(
+            <strong className="text-sm">{cr.cr}%</strong>)。
+            {cr.retractedCount > 0 && (
+              <span className="ml-1 text-slate-500">取り消された対策報告: {cr.retractedCount}件</span>
+            )}
+          </div>
+        ) : (
+          cr.retractedCount > 0 && (
+            <p className="text-[11px] text-slate-400">取り消された対策報告: {cr.retractedCount}件</p>
+          )
+        )}
       </section>
 
       {/* 投稿導線 + ウォッチ */}
@@ -164,6 +185,21 @@ export default async function CompanyPage({
         </section>
       )}
 
+      {/* 対策が報告された投稿(常時公開・SSR)。指摘と対策をセットで公開する(§5.2) */}
+      {badgedReviews.length > 0 && (
+        <section className="space-y-3">
+          <div>
+            <h2 className="text-base font-bold">指摘と企業の対策</h2>
+            <p className="text-xs text-slate-400">
+              企業が対策を報告した投稿です。元の指摘とセットで常時公開しています(対策報告率 {cr.cr != null ? `${cr.cr}%` : "集計中"})。
+            </p>
+          </div>
+          {badgedReviews.map((r) => (
+            <ReviewCard key={r.id} review={r} detail={gate.allowed} />
+          ))}
+        </section>
+      )}
+
       {/* 代表レビュー(常時公開・SSR) */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
@@ -185,7 +221,7 @@ export default async function CompanyPage({
         </h2>
         {gate.allowed ? (
           allReviews
-            .filter((r) => !repIds.has(r.id))
+            .filter((r) => !repIds.has(r.id) && !badgedReviews.some((b) => b.id === r.id))
             .map((r) => <ReviewCard key={r.id} review={r} detail />)
         ) : (
           <GateBlock companyCorpNumber={company.corporateNumber} />

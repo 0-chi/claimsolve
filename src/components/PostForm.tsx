@@ -2,10 +2,20 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { CATEGORY_LABELS, REPLY_SPEED_LABELS, EXTERNAL_CHANNEL_LABELS } from "@/lib/labels";
-import { OUTCOME_LABELS, SILENCE_REASON_LABELS, SILENCE_REASONS, type Outcome, type SilenceReason } from "@/lib/scoring";
-import { MIN_POST_CHARS, MIN_VIEWPASS_CHARS, MAX_SILENCE_REASONS } from "@/lib/post-rules";
+import {
+  OUTCOME_LABELS,
+  SILENCE_REASON_LABELS,
+  SILENCE_REASONS,
+  STAFF_CHANNEL_LABELS,
+  STAFF_ISSUE_LABELS,
+  type Outcome,
+  type SilenceReason,
+  type StaffChannel,
+  type StaffIssue,
+} from "@/lib/scoring";
+import { MIN_POST_CHARS, MIN_VIEWPASS_CHARS, MAX_SILENCE_REASONS, MIN_STAFF_CHARS } from "@/lib/post-rules";
 
-type Lane = "past" | "live" | "silent";
+type Lane = "past" | "live" | "silent" | "staff";
 type Step = "lane" | "company" | "content" | "evaluation" | "reasons" | "account" | "done";
 
 interface CompanyResult {
@@ -58,6 +68,13 @@ export default function PostForm({
   const [silentWouldUseAgain, setSilentWouldUseAgain] = useState<boolean | null>(null);
   const [desiredOutcome, setDesiredOutcome] = useState("");
 
+  // staff(担当者への申し出・完全非公開)
+  const [department, setDepartment] = useState("");
+  const [contactChannel, setContactChannel] = useState("phone");
+  const [contactedDate, setContactedDate] = useState("");
+  const [contactedSlot, setContactedSlot] = useState("午前");
+  const [staffIssues, setStaffIssues] = useState<string[]>([]);
+
   // 評価
   const [satisfaction, setSatisfaction] = useState(7);
   const [outcome, setOutcome] = useState<Outcome>("partial_refund");
@@ -101,8 +118,11 @@ export default function PostForm({
   }, [query, newCompanyMode, company]);
 
   const bodyLen = body.trim().length;
-  const toPost = Math.max(0, MIN_POST_CHARS - bodyLen);
+  const minChars = lane === "staff" ? MIN_STAFF_CHARS : MIN_POST_CHARS;
+  const toPost = Math.max(0, minChars - bodyLen);
   const toViewPass = Math.max(0, MIN_VIEWPASS_CHARS - bodyLen);
+  const staffFieldsOk =
+    lane !== "staff" || (department.trim().length > 0 && contactedDate.length > 0);
 
   async function runNgCheck() {
     const r = await fetch("/api/moderate", {
@@ -208,9 +228,45 @@ export default function PostForm({
     setSubmitting(false);
   }
 
+  async function finalSubmitStaff() {
+    setError("");
+    setSubmitting(true);
+    try {
+      const payload: any = {
+        category,
+        department,
+        contactChannel,
+        contactedAt: `${contactedDate} ${contactedSlot}`,
+        staffIssues,
+        body,
+        account: { displayName, email, phone, code },
+      };
+      if (newCompanyMode) payload.newCompany = { name: company?.name, category };
+      else payload.corporateNumber = company?.corporateNumber;
+
+      const r = await fetch("/api/complaints/staff", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      const j = await r.json();
+      if (!j.ok) {
+        setError(j.message ?? "投稿に失敗しました。");
+        setSubmitting(false);
+        return;
+      }
+      setResult({ ...j, staff: true });
+      setStep("done");
+    } catch {
+      setError("通信エラーが発生しました。");
+    }
+    setSubmitting(false);
+  }
+
   async function finalSubmit() {
     if (lane === "live") return finalSubmitLive();
     if (lane === "silent") return finalSubmitSilent();
+    if (lane === "staff") return finalSubmitStaff();
     setError("");
     setSubmitting(true);
     try {
@@ -298,6 +354,18 @@ export default function PostForm({
             <div className="font-semibold">言わずに終わった不満を記録する</div>
             <p className="text-xs text-slate-500">
               企業に一度も言わなかった不満を、「なぜ言わなかったか」とともに残します。
+            </p>
+          </button>
+          <button
+            className="card w-full text-left hover:border-brand-500"
+            onClick={() => {
+              setLane("staff");
+              setStep("company");
+            }}
+          >
+            <div className="font-semibold">担当者の対応について、企業に伝える</div>
+            <p className="text-xs text-slate-500">
+              完全非公開で企業にだけ届きます。公開ページには一切表示されません。
             </p>
           </button>
         </div>
@@ -395,14 +463,75 @@ export default function PostForm({
               ))}
             </select>
           </div>
-          <div>
-            <label className="label">タイトル</label>
-            <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="例:解約手続きに時間がかかった" />
-          </div>
-          <div>
-            <label className="label">発生時期(必須)</label>
-            <input type="month" className="input" value={occurredYearMonth} onChange={(e) => setOccurredYearMonth(e.target.value)} />
-          </div>
+          {lane !== "staff" && (
+            <>
+              <div>
+                <label className="label">タイトル</label>
+                <input className="input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="例:解約手続きに時間がかかった" />
+              </div>
+              <div>
+                <label className="label">発生時期(必須)</label>
+                <input type="month" className="input" value={occurredYearMonth} onChange={(e) => setOccurredYearMonth(e.target.value)} />
+              </div>
+            </>
+          )}
+
+          {lane === "staff" && (
+            <>
+              <div className="rounded-lg bg-sky-50 p-3 text-xs text-sky-800">
+                この申し出は<strong>完全非公開</strong>で企業にだけ届きます。目的は担当者個人の処罰ではなく、
+                企業内の傾向把握です。
+              </div>
+              <div>
+                <label className="label">部署・店舗名(必須)</label>
+                <input className="input" value={department} onChange={(e) => setDepartment(e.target.value)} placeholder="例:○○店 / カスタマーサポート窓口" />
+              </div>
+              <div>
+                <label className="label">接触チャネル(必須)</label>
+                <select className="input" value={contactChannel} onChange={(e) => setContactChannel(e.target.value)}>
+                  {Object.entries(STAFF_CHANNEL_LABELS).map(([k, v]) => (
+                    <option key={k} value={k}>{v}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="label">接触日(必須)</label>
+                  <input type="date" className="input" value={contactedDate} onChange={(e) => setContactedDate(e.target.value)} />
+                </div>
+                <div>
+                  <label className="label">時間帯</label>
+                  <select className="input" value={contactedSlot} onChange={(e) => setContactedSlot(e.target.value)}>
+                    {["午前", "午後", "夕方", "夜"].map((s) => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="label">何が問題でしたか?(任意・複数選択)</label>
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {Object.entries(STAFF_ISSUE_LABELS).map(([k, v]) => (
+                    <button
+                      key={k}
+                      type="button"
+                      onClick={() =>
+                        setStaffIssues((prev) =>
+                          prev.includes(k) ? prev.filter((x) => x !== k) : [...prev, k]
+                        )
+                      }
+                      className={`chip ${staffIssues.includes(k) ? "bg-brand-600 text-white" : "bg-white ring-1 ring-slate-200"}`}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <p className="rounded bg-amber-50 p-2 text-xs text-amber-700">
+                担当者のお名前は書かないでください。日時と部署で企業側は確認できます。
+              </p>
+            </>
+          )}
           <div>
             <label className="label">本文</label>
             <textarea
@@ -421,6 +550,10 @@ export default function PostForm({
               {lane === "silent" ? (
                 <span className={toPost > 0 ? "text-slate-400" : "text-emerald-600"}>
                   {toPost > 0 ? "閲覧権(3日)まで50字" : "閲覧権(3日)獲得"}
+                </span>
+              ) : lane === "staff" ? (
+                <span className={toPost > 0 ? "text-slate-400" : "text-emerald-600"}>
+                  {toPost > 0 ? "閲覧権(24時間)まで80字" : "閲覧権(24時間)獲得"}
                 </span>
               ) : (
                 <span className={toViewPass > 0 ? "text-slate-400" : "text-emerald-600"}>
@@ -444,10 +577,27 @@ export default function PostForm({
 
           <button
             className="btn-primary w-full"
-            disabled={toPost > 0 || !occurredYearMonth || (ngResult && !ngResult.ok)}
-            onClick={() => setStep(lane === "live" ? "account" : lane === "silent" ? "reasons" : "evaluation")}
+            disabled={
+              toPost > 0 ||
+              (lane !== "staff" && !occurredYearMonth) ||
+              !staffFieldsOk ||
+              (ngResult && !ngResult.ok)
+            }
+            onClick={() =>
+              setStep(
+                lane === "live" || lane === "staff"
+                  ? "account"
+                  : lane === "silent"
+                    ? "reasons"
+                    : "evaluation"
+              )
+            }
           >
-            {lane === "live" ? "アカウント登録へ" : lane === "silent" ? "理由の入力へ" : "評価に進む"}
+            {lane === "live" || lane === "staff"
+              ? "アカウント登録へ"
+              : lane === "silent"
+                ? "理由の入力へ"
+                : "評価に進む"}
           </button>
           {ngResult && !ngResult.ok && (
             <p className="text-center text-xs text-rose-500">投稿できない表現を修正してください。</p>
@@ -678,8 +828,21 @@ export default function PostForm({
           >
             {submitting ? "送信中…" : "投稿を確定する"}
           </button>
-          <button className="text-xs text-slate-500 hover:underline" onClick={() => setStep(lane === "live" ? "content" : lane === "silent" ? "reasons" : "evaluation")}>
+          <button className="text-xs text-slate-500 hover:underline" onClick={() => setStep(lane === "live" || lane === "staff" ? "content" : lane === "silent" ? "reasons" : "evaluation")}>
             ← 戻る
+          </button>
+        </div>
+      )}
+
+      {step === "done" && result?.staff && (
+        <div className="card space-y-3 text-center">
+          <div className="text-3xl">🔒</div>
+          <p className="font-semibold">担当者への申し出を企業に届けました</p>
+          <p className="text-sm text-slate-600">
+            この申し出は完全非公開です。公開ページには一切表示されません。閲覧権(24時間)を付与しました。
+          </p>
+          <button className="btn-primary" onClick={() => router.push("/")}>
+            トップへ戻る
           </button>
         </div>
       )}
@@ -751,7 +914,7 @@ function StepIndicator({ step, lane }: { step: Step; lane: Lane; liveEnabled: bo
   const steps: { key: Step; label: string }[] = [
     { key: "company", label: "企業" },
     { key: "content", label: "内容" },
-    ...(lane === "live" ? [] : [middle]),
+    ...(lane === "live" || lane === "staff" ? [] : [middle]),
     { key: "account", label: "登録" },
   ];
   const activeIdx = steps.findIndex((s) => s.key === step);

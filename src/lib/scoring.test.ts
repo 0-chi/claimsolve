@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   computeCompanyScore,
   computeSilentStats,
+  computeCr,
   deriveSolved,
   reachedResolution,
   within24Months,
@@ -156,6 +157,47 @@ describe("SR(沈黙率)/ UR(窓口不達率)", () => {
     expect(s.ur).toBe(20);
     expect(s.unreachableBreakdown.no_contact_found).toBe(1);
     expect(s.unreachableBreakdown.could_not_reach).toBe(1);
+  });
+});
+
+describe("CR(対策報告率)", () => {
+  it("改善余地レビュー5件未満は集計中(null)", () => {
+    const s = computeCr(
+      [{ hasPublishedAction: true }, { hasPublishedAction: false }],
+      0
+    );
+    expect(s.cr).toBeNull();
+    expect(s.lowReviewTotal).toBe(2);
+  });
+
+  it("CR = 対策付き ÷ 改善余地総数 ×100。取消件数を併記", () => {
+    const lows = [
+      { hasPublishedAction: true },
+      { hasPublishedAction: true },
+      { hasPublishedAction: false },
+      { hasPublishedAction: false },
+      { hasPublishedAction: false },
+    ];
+    const s = computeCr(lows, 3);
+    expect(s.cr).toBe(40); // 2/5
+    expect(s.lowReviewWithAction).toBe(2);
+    expect(s.retractedCount).toBe(3);
+  });
+});
+
+describe("バッジ類は AR に影響しない", () => {
+  it("AR の入力は必須3問+live返答のみ(バッジを含むオブジェクトでも結果不変)", () => {
+    const base = computeCompanyScore(reviews(5));
+    // 同じレビューに余計なバッジ系プロパティが付いていても AR は同一
+    const decorated = reviews(5).map((r) => ({
+      ...r,
+      resolutionBadge: { praisePoints: "fast_response" },
+      helpfulMark: true,
+      actionNote: "対策済み",
+    }));
+    const withBadges = computeCompanyScore(decorated as ScoreReviewInput[]);
+    expect(withBadges.ar).toBe(base.ar);
+    expect(withBadges.ma).toBe(base.ma);
   });
 });
 

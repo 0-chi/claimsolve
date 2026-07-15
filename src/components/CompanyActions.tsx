@@ -91,14 +91,17 @@ export function ReplyForm({ reviewId, existing }: { reviewId: string; existing?:
   );
 }
 
-export function ImprovementForm({ reviewId }: { reviewId: string }) {
+// 対策バッジ(§5.7-(1))。80字以上必須・投稿に紐付け・ゲート外に公開される。
+export function ActionNoteForm({ complaintId }: { complaintId: string }) {
   const router = useRouter();
   const [body, setBody] = useState("");
   const [open, setOpen] = useState(false);
   const [msg, setMsg] = useState("");
+  const len = body.trim().length;
+  const remaining = Math.max(0, 80 - len);
 
   async function submit() {
-    const j = await postAction({ type: "improvement", reviewIds: [reviewId], body });
+    const j = await postAction({ type: "action_note", complaintIds: [complaintId], body });
     if (j.ok) {
       setOpen(false);
       router.refresh();
@@ -107,19 +110,102 @@ export function ImprovementForm({ reviewId }: { reviewId: string }) {
   if (!open)
     return (
       <button className="text-xs text-brand-700 hover:underline" onClick={() => setOpen(true)}>
-        改善済みバッジを付ける
+        対策バッジを付ける
       </button>
     );
   return (
     <div className="space-y-2">
-      <textarea className="input h-20 text-sm" value={body} onChange={(e) => setBody(e.target.value)} placeholder="この指摘を受けて◯◯を改善しました" />
-      <p className="text-[10px] text-slate-400">※「企業からの改善報告(自己申告)」として表示されます。虚偽は通報→バッジ取消の対象です。</p>
+      <textarea className="input h-24 text-sm" value={body} onChange={(e) => setBody(e.target.value)} placeholder="この指摘を受けて、何を・いつ・どう変えたかを具体的に(80字以上)" />
+      <div className="flex justify-between text-[10px] text-slate-400">
+        <span>{remaining > 0 ? `あと${remaining}字必要です` : `${len}/500字`}</span>
+        <span>元の投稿本文とセットで常時公開されます</span>
+      </div>
+      <p className="text-[10px] text-slate-400">
+        ※「企業からの自己申告」として表示されます。削除はできず、取り消しは履歴として公開されます。虚偽は通報→取消の対象です。
+      </p>
       <div className="flex gap-2">
-        <button className="btn-primary !py-1 text-xs" onClick={submit}>公開する</button>
+        <button className="btn-primary !py-1 text-xs" disabled={len < 80 || len > 500} onClick={submit}>公開する</button>
         <button className="btn-outline !py-1 text-xs" onClick={() => setOpen(false)}>キャンセル</button>
       </div>
       {msg && <p className="text-xs text-rose-500">{msg}</p>}
     </div>
+  );
+}
+
+// 「参考になった」マーク(§5.8)。1投稿1回・1日10件。
+export function HelpfulButton({ complaintId, active }: { complaintId: string; active: boolean }) {
+  const router = useRouter();
+  const [msg, setMsg] = useState("");
+  async function toggle() {
+    const j = await postAction({ type: active ? "helpful_retract" : "helpful", complaintId });
+    if (j.ok) router.refresh();
+    else setMsg(j.message ?? "失敗");
+  }
+  return (
+    <span className="inline-flex items-center gap-1">
+      <button
+        className={`text-xs hover:underline ${active ? "text-emerald-700" : "text-brand-700"}`}
+        onClick={toggle}
+      >
+        {active ? "✓ 参考にしました(取り消す)" : "この指摘は参考になった"}
+      </button>
+      {msg && <span className="text-[10px] text-rose-500">{msg}</span>}
+    </span>
+  );
+}
+
+// 解決の申し出(§5.7-(3))。past のみ・1投稿1回・80字以上。
+export function OfferForm({ complaintId, offered }: { complaintId: string; offered: boolean }) {
+  const router = useRouter();
+  const [body, setBody] = useState("");
+  const [open, setOpen] = useState(false);
+  const [msg, setMsg] = useState("");
+  const len = body.trim().length;
+
+  if (offered) return <span className="text-xs text-slate-400">解決の申し出: 送信済み</span>;
+
+  async function submit() {
+    const j = await postAction({ type: "offer", complaintId, body });
+    if (j.ok) {
+      setOpen(false);
+      router.refresh();
+    } else setMsg(j.message ?? "失敗");
+  }
+  if (!open)
+    return (
+      <button className="text-xs text-brand-700 hover:underline" onClick={() => setOpen(true)}>
+        解決の申し出を送る(1回のみ)
+      </button>
+    );
+  return (
+    <div className="space-y-2">
+      <textarea className="input h-24 text-sm" value={body} onChange={(e) => setBody(e.target.value)} placeholder="投稿者への申し出内容(80字以上)。連絡先は開示されず、応じるかは投稿者の自由です。" />
+      <p className="text-[10px] text-slate-400">
+        ※買っているのは「話しかける権利」です。解決済みバッジを付けるかどうかは投稿者だけが決められます。
+      </p>
+      <div className="flex gap-2">
+        <button className="btn-primary !py-1 text-xs" disabled={len < 80} onClick={submit}>送信する</button>
+        <button className="btn-outline !py-1 text-xs" onClick={() => setOpen(false)}>キャンセル</button>
+      </div>
+      {msg && <p className="text-xs text-rose-500">{msg}</p>}
+    </div>
+  );
+}
+
+export function RetractNoteButton({ noteId }: { noteId: string }) {
+  const router = useRouter();
+  const [busy, setBusy] = useState(false);
+  async function retract() {
+    if (!window.confirm("取り消しますか?(取り消しは履歴として公開されます)")) return;
+    setBusy(true);
+    await postAction({ type: "retract_action_note", noteId });
+    setBusy(false);
+    router.refresh();
+  }
+  return (
+    <button className="text-[10px] text-slate-400 hover:text-rose-600" disabled={busy} onClick={retract}>
+      取り消す
+    </button>
   );
 }
 

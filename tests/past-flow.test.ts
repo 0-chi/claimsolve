@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { submitPastReview, PostError } from "@/lib/post";
-import { maybeAutoActivateGate, getFlag, getGateActivatedAt } from "@/lib/flags";
+import { maybeAutoActivateGate, getFlag, getGateActivatedAt, publicPostCount } from "@/lib/flags";
 
 const CORP = "9000000000000";
 
@@ -105,44 +105,53 @@ describe("ゲートの200件自動発動", () => {
     const user = await prisma.user.create({
       data: { displayName: "ゲート主", email: "gate@example.com", phone: "09099990000" },
     });
-    // 既存 published レビュー数を差し引いて 200 まで積む
-    const current = await prisma.review.count();
-    const need200 = 200 - current;
-    for (let i = 0; i < need200; i++) {
-      const c = await prisma.complaint.create({
-        data: {
-          userId: user.id,
-          companyId: company.id,
-          lane: "past",
-          category: "subscription",
-          title: "x",
-          body: "z",
-          occurredYearMonth: "2026-01",
-          status: "published",
-          publishedAt: new Date(),
-        },
-      });
-      await prisma.review.create({
-        data: { complaintId: c.id, companyId: company.id, userId: user.id, satisfaction: 7, outcome: "apology_only", wouldUseAgain: false },
-      });
-    }
-    expect(await prisma.review.count()).toBe(200);
+    // ゲート判定は公開投稿(past+silent+live)総数。既存分を差し引いて 200 まで積む。
+    const pad = async (n: number) => {
+      for (let i = 0; i < n; i++) {
+        await prisma.complaint.create({
+          data: {
+            userId: user.id,
+            companyId: company.id,
+            lane: "past",
+            category: "subscription",
+            title: "x",
+            body: "z",
+            occurredYearMonth: "2026-01",
+            status: "published",
+            publishedAt: new Date(),
+          },
+        });
+      }
+    };
+    const current = await publicPostCount();
+    await pad(200 - current);
+    expect(await publicPostCount()).toBe(200);
     await maybeAutoActivateGate();
     expect(await getFlag("gate_enabled")).toBe(false);
 
     // 201件目
-    const c = await prisma.complaint.create({
-      data: {
-        userId: user.id, companyId: company.id, lane: "past", category: "subscription",
-        title: "x", body: "z", occurredYearMonth: "2026-01", status: "published", publishedAt: new Date(),
-      },
-    });
-    await prisma.review.create({
-      data: { complaintId: c.id, companyId: company.id, userId: user.id, satisfaction: 7, outcome: "apology_only", wouldUseAgain: false },
-    });
-    expect(await prisma.review.count()).toBe(201);
+    await pad(1);
+    expect(await publicPostCount()).toBe(201);
     await maybeAutoActivateGate();
     expect(await getFlag("gate_enabled")).toBe(true);
     expect(await getGateActivatedAt()).not.toBeNull();
+
+    // staff は公開投稿数に算入されない(ゲート判定外)
+    const countBeforeStaff = await publicPostCount();
+    await prisma.complaint.create({
+      data: {
+        userId: user.id,
+        companyId: company.id,
+        lane: "staff",
+        category: "subscription",
+        title: "staff",
+        body: "z".repeat(80),
+        department: "d",
+        contactChannel: "phone",
+        contactedAt: "2026-07-01 午前",
+        status: "delivered",
+      },
+    });
+    expect(await publicPostCount()).toBe(countBeforeStaff);
   });
 });

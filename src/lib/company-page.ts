@@ -3,7 +3,7 @@ import { within24Months } from "@/lib/scoring";
 import { REVIEW_COMPLAINT_OR } from "@/lib/queries";
 import type { ReviewCardReview } from "@/components/ReviewCard";
 
-// 表示用にレビューを整形(係争中フラグ・改善済みバッジ・返信を付与)。
+// 表示用にレビューを整形(係争中フラグ・対策/解決バッジ・返信を付与)。
 export async function loadCompanyReviews(
   companyId: string,
   period: "recent" | "all"
@@ -14,10 +14,16 @@ export async function loadCompanyReviews(
       complaint: { OR: REVIEW_COMPLAINT_OR },
     },
     include: {
-      complaint: { include: { objections: true } },
+      complaint: {
+        include: {
+          objections: true,
+          actionLinks: { include: { note: true } },
+          resolutionBadge: true,
+          helpfulMark: true,
+        },
+      },
       reply: true,
       user: true,
-      improvementLinks: { include: { note: true } },
     },
     orderBy: { createdAt: "desc" },
   });
@@ -55,7 +61,19 @@ export async function loadCompanyReviews(
     reply: r.reply ? { body: r.reply.body } : null,
     user: { kycStatus: r.user.kycStatus },
     disputed: r.complaint.objections.some((o) => o.status === "kept_disputed"),
-    improvementNotes: r.improvementLinks.map((l) => ({ id: l.note.id, body: l.note.body })),
+    actionNotes: r.complaint.actionLinks
+      .filter((l) => l.note.status === "published")
+      .map((l) => ({ id: l.note.id, body: l.note.body })),
+    resolutionBadge: r.complaint.resolutionBadge
+      ? {
+          praisePoints: r.complaint.resolutionBadge.praisePoints
+            .split(",")
+            .map((p) => p.trim())
+            .filter(Boolean),
+          praiseComment: r.complaint.resolutionBadge.praiseComment,
+        }
+      : null,
+    helpful: !!r.complaint.helpfulMark && !r.complaint.helpfulMark.retractedAt,
   }));
 }
 

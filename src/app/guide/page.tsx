@@ -57,10 +57,28 @@ export default function GuidePage() {
       </section>
 
       <section className="space-y-2">
+        <h2 className="font-bold">対策バッジと解決済みバッジ</h2>
+        <p>
+          <strong>対策バッジは企業の自己申告</strong>です(80字以上・元の投稿とセットで公開・クレソルは内容を検証しません)。
+          <strong>解決済みバッジは投稿者本人しか付けられません</strong>。企業が作成・編集・削除することはできず、
+          両方が揃ったときにのみ「対策・解決済み」の完全バッジが表示されます。完全バッジは金銭では買えません。
+        </p>
+      </section>
+
+      <section className="space-y-2">
+        <h2 className="font-bold">担当者への申し出について</h2>
+        <p>
+          「担当者への申し出」は<strong>完全非公開</strong>で、公開ページ・検索のいずれにも表示されません。
+          目的は<strong>個人の処罰ではなく、企業内の傾向把握</strong>です。担当者の個人名は記載できません
+          (日時・チャネル・部署で企業側は確認できます)。
+        </p>
+      </section>
+
+      <section className="space-y-2">
         <h2 className="font-bold">レビューの削除について</h2>
         <p>
           レビューは金銭を含むいかなる手段でも削除できません。企業は「公開返信」や
-          「改善済みバッジ」で対応できます。事実に誤りがある場合は異議申し立ての手続きがあります。
+          「対策バッジ」で対応できます。事実に誤りがある場合は異議申し立ての手続きがあります。
         </p>
       </section>
     </article>

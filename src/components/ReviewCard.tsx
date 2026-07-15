@@ -1,4 +1,4 @@
-import { OUTCOME_LABELS, deriveSolved, type Outcome } from "@/lib/scoring";
+import { OUTCOME_LABELS, PRAISE_POINT_LABELS, deriveSolved, type Outcome, type PraisePoint } from "@/lib/scoring";
 import { REPLY_SPEED_LABELS, EXTERNAL_CHANNEL_LABELS, yearMonthLabel } from "@/lib/labels";
 
 export interface ReviewCardReview {
@@ -25,7 +25,9 @@ export interface ReviewCardReview {
   reply?: { body: string } | null;
   user?: { kycStatus: string } | null;
   disputed?: boolean;
-  improvementNotes?: { id: string; body: string }[];
+  actionNotes?: { id: string; body: string }[];
+  resolutionBadge?: { praisePoints: string[]; praiseComment: string } | null;
+  helpful?: boolean;
 }
 
 // 詳細評点を出すか(ゲート内=full)、代表レビューの要約か(summary)。
@@ -41,6 +43,9 @@ export function ReviewCard({
     .split(",")
     .map((s) => s.trim())
     .filter((s) => s && s !== "none");
+  // 対策(企業)+解決済み(投稿者)の両方が揃ったときのみ完全バッジ(§5.7)
+  const hasAction = (review.actionNotes?.length ?? 0) > 0;
+  const fullBadge = hasAction && !!review.resolutionBadge;
 
   return (
     <article className="card space-y-2">
@@ -57,6 +62,12 @@ export function ReviewCard({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        {fullBadge && (
+          <span className="chip bg-emerald-600 text-white">✓ 対策・解決済み</span>
+        )}
+        {review.helpful && (
+          <span className="chip bg-brand-50 text-brand-700">企業がこの指摘を参考にしました</span>
+        )}
         <span className="text-sm font-bold text-slate-900">納得度 {review.satisfaction}/10</span>
         <span className={`chip ${solved ? "bg-emerald-100 text-emerald-800" : "bg-slate-100 text-slate-600"}`}>
           {OUTCOME_LABELS[review.outcome as Outcome]}
@@ -93,16 +104,35 @@ export function ReviewCard({
         </dl>
       )}
 
-      {/* 改善済みバッジ(企業の自己申告) */}
-      {review.improvementNotes?.map((n) => (
+      {/* 対策バッジ(企業の自己申告・ゲート外でも表示) */}
+      {review.actionNotes?.map((n) => (
         <div key={n.id} className="rounded-lg border border-brand-200 bg-brand-50 p-3 text-xs">
-          <div className="chip bg-brand-100 text-brand-700">改善済み(企業からの改善報告)</div>
+          <div className="chip bg-brand-100 text-brand-700">対策(企業からの自己申告)</div>
           <p className="mt-1 text-slate-700">{n.body}</p>
           <p className="mt-1 text-[10px] text-slate-400">
-            ※クレソルが改善内容を検証したものではありません。
+            ※企業からの自己申告です。クレソルが内容を検証したものではありません。
           </p>
         </div>
       ))}
+
+      {/* 解決済みバッジ(投稿者のみが確定できる) */}
+      {review.resolutionBadge && (
+        <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-xs">
+          <div className="chip bg-emerald-100 text-emerald-800">解決済み(投稿者が確定)</div>
+          {review.resolutionBadge.praisePoints.length > 0 && (
+            <div className="mt-1 flex flex-wrap gap-1">
+              {review.resolutionBadge.praisePoints.map((p) => (
+                <span key={p} className="chip bg-white text-emerald-700 ring-1 ring-emerald-200">
+                  {PRAISE_POINT_LABELS[p as PraisePoint] ?? p}
+                </span>
+              ))}
+            </div>
+          )}
+          {review.resolutionBadge.praiseComment && (
+            <p className="mt-1 text-slate-700">{review.resolutionBadge.praiseComment}</p>
+          )}
+        </div>
+      )}
 
       {/* 公開返信 */}
       {review.reply && (
