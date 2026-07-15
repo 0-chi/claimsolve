@@ -26,11 +26,11 @@ async function getCompany(param: string) {
 
 export async function generateMetadata({ params }: { params: { param: string } }): Promise<Metadata> {
   const company = await getCompany(params.param);
-  if (!company) return { title: "企業が見つかりません | クレソル" };
+  if (!company) return { title: "企業が見つかりません | クレームソルブ" };
   const base = process.env.APP_URL || "http://localhost:3000";
   const ogImage = `${base}/api/og/company/${company.corporateNumber}`;
   return {
-    title: `${company.name}のクレーム対応 評判・スコア | クレソル`,
+    title: `${company.name}のクレーム対応 評判・スコア | クレームソルブ`,
     description: `${company.name}のカスタマーサポート・クレーム対応の評判とスコア。`,
     openGraph: { images: [ogImage] },
     twitter: { card: "summary_large_image", images: [ogImage] },

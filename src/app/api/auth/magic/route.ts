@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     const link = `${base}/api/auth/verify?token=${token}`;
     await mailService.send({
       to: user.email,
-      subject: "【クレソル】ログインリンク",
+      subject: "【クレームソルブ】ログインリンク",
       body: `以下のリンクからログインしてください(72時間有効)。\n${link}`,
       purpose: "magic_login",
     });

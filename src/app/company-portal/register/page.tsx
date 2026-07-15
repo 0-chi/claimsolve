@@ -2,7 +2,7 @@ import Link from "next/link";
 import CompanyAuthForm from "@/components/CompanyAuthForm";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "企業登録 | クレソル" };
+export const metadata = { title: "企業登録 | クレームソルブ" };
 
 export default function CompanyRegisterPage() {
   return (

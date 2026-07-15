@@ -109,7 +109,7 @@ export async function submitLiveComplaint(input: LiveComplaintInputDTO) {
   const base = process.env.APP_URL || "http://localhost:3000";
   await mailService.send({
     to: user.email,
-    subject: "【クレソル】投稿を受け付けました",
+    subject: "【クレームソルブ】投稿を受け付けました",
     body: `専用ページ(72時間有効): ${base}/m/${token}`,
     purpose: "live_magic",
   });

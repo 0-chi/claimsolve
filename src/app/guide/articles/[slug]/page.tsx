@@ -14,9 +14,9 @@ export function generateStaticParams() {
 
 export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
   const article = getArticle(params.slug);
-  if (!article) return { title: "記事が見つかりません | クレソル" };
+  if (!article) return { title: "記事が見つかりません | クレームソルブ" };
   return {
-    title: `${article.title} | クレソル`,
+    title: `${article.title} | クレームソルブ`,
     description: article.description,
   };
 }

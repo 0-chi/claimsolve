@@ -1,4 +1,4 @@
-export const metadata = { title: "利用規約 | クレソル" };
+export const metadata = { title: "利用規約 | クレームソルブ" };
 
 export default function TermsPage() {
   return (
@@ -11,7 +11,7 @@ export default function TermsPage() {
 
       <section className="space-y-2">
         <h2 className="font-bold">第1条(サービス)</h2>
-        <p>クレソル(以下「本サービス」)は、企業のクレーム対応に関するレビュー・評価を提供します。</p>
+        <p>クレームソルブ(以下「本サービス」)は、企業のクレーム対応に関するレビュー・評価を提供します。</p>
       </section>
 
       <section className="space-y-2">

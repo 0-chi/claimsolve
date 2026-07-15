@@ -33,7 +33,7 @@ import {
 } from "@/components/CompanyActions";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "企業ダッシュボード | クレソル" };
+export const metadata = { title: "企業ダッシュボード | クレームソルブ" };
 
 export default async function CompanyDashboard() {
   const cu = await getCurrentCompanyUser();

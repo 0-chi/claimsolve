@@ -1,30 +1,10 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/session";
+import { HeaderBar } from "@/components/HeaderBar";
 
 export async function Header() {
   const user = await getCurrentUser();
-  return (
-    <header className="sticky top-0 z-20 border-b border-slate-200 bg-white/90 backdrop-blur">
-      <div className="container-app flex h-14 items-center justify-between">
-        <Link href="/" className="flex items-center gap-1.5 font-bold text-brand-700">
-          <span className="text-xl">◎</span>
-          <span>クレソル</span>
-        </Link>
-        <nav className="flex items-center gap-2 text-sm">
-          <Link href="/post" className="btn-primary !px-3 !py-1.5">
-            投稿する
-          </Link>
-          {user ? (
-            <span className="text-xs text-slate-500">{user.displayName}</span>
-          ) : (
-            <Link href="/login" className="text-slate-600 hover:text-brand-700">
-              ログイン
-            </Link>
-          )}
-        </nav>
-      </div>
-    </header>
-  );
+  return <HeaderBar userName={user?.displayName ?? null} />;
 }
 
 export function Footer() {
@@ -43,7 +23,7 @@ export function Footer() {
           <Link href="/request" className="hover:text-brand-700">削除・開示請求</Link>
           <Link href="/business" className="hover:text-brand-700">企業の方へ</Link>
         </nav>
-        <p className="pt-2 text-slate-400">© クレソル(ClaimSolve)— クレーム対応を評価するレビューサイト</p>
+        <p className="pt-2 text-slate-400">© クレームソルブ(ClaimSolve)— クレーム対応を評価するレビューサイト</p>
       </div>
     </footer>
   );

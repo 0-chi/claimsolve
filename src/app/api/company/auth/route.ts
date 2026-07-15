@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
     await prisma.company.update({ where: { id: company.id }, data: { domainVerified: true } });
     await mailService.send({
       to: em,
-      subject: "【クレソル】企業アカウント登録完了",
+      subject: "【クレームソルブ】企業アカウント登録完了",
       body: `${company.name} の企業アカウントを登録しました。`,
       purpose: "company_register",
     });

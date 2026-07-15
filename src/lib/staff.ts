@@ -161,7 +161,7 @@ export async function submitStaffReport(input: StaffInput) {
     const base = process.env.APP_URL || "http://localhost:3000";
     await mailService.send({
       to: company.notifyEmail,
-      subject: "【クレソル】担当者への申し出が届いています",
+      subject: "【クレームソルブ】担当者への申し出が届いています",
       body: `${company.name} 宛に「担当者への申し出」が1件届きました。件数はダッシュボードでご確認いただけます。本申し出は公開されません。\n詳細: ${base}/business?from=notice`,
       purpose: "staff_notify",
       status: "approved",

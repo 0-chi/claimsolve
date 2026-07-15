@@ -1,6 +1,6 @@
 import RequestForm from "@/components/RequestForm";
 
-export const metadata = { title: "削除・開示請求 | クレソル" };
+export const metadata = { title: "削除・開示請求 | クレームソルブ" };
 
 export default function RequestPage() {
   return (

@@ -36,7 +36,7 @@ export async function GET(_req: Request, { params }: { params: { param: string }
           borderBottom: "16px solid #dc2626",
         }}
       >
-        <div style={{ display: "flex", fontSize: 28, color: "#b91c1c", fontWeight: 700 }}>クレソル</div>
+        <div style={{ display: "flex", fontSize: 28, color: "#b91c1c", fontWeight: 700 }}>クレームソルブ</div>
         <div style={{ display: "flex", fontSize: 52, fontWeight: 700, marginTop: 16 }}>{company.name}</div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 24, marginTop: 28 }}>
           <div style={{ display: "flex", fontSize: 84, fontWeight: 800 }}>

@@ -1,7 +1,7 @@
 import { getFlag } from "@/lib/flags";
 import { prisma } from "@/lib/prisma";
 
-export const metadata = { title: "特定商取引法に基づく表記 | クレソル" };
+export const metadata = { title: "特定商取引法に基づく表記 | クレームソルブ" };
 export const dynamic = "force-dynamic";
 
 export default async function TokushohoPage() {
@@ -16,7 +16,7 @@ export default async function TokushohoPage() {
       </p>
 
       <dl className="space-y-2">
-        <Row k="販売事業者">(プレースホルダ)株式会社クレソル</Row>
+        <Row k="販売事業者">(プレースホルダ)株式会社クレームソルブ</Row>
         <Row k="運営責任者">(プレースホルダ)</Row>
         <Row k="所在地">(プレースホルダ)</Row>
         <Row k="お問い合わせ">削除・開示請求ページのフォームより</Row>

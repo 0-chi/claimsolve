@@ -114,7 +114,7 @@ export async function POST(req: NextRequest) {
         }
         await mailService.send({
           to: c.user.email,
-          subject: `【クレソル】あなたの指摘が ${c.company.name} に参考にされました`,
+          subject: `【クレームソルブ】あなたの指摘が ${c.company.name} に参考にされました`,
           body: `あなたの投稿「${c.title}」について、${c.company.name} が「この指摘は改善の参考になりました」と表明しました。`,
           purpose: "helpful_notify",
         });
@@ -167,7 +167,7 @@ export async function POST(req: NextRequest) {
         const base = process.env.APP_URL || "http://localhost:3000";
         await mailService.send({
           to: c.user.email,
-          subject: `【クレソル】${c.company.name} から解決の申し出が届いています`,
+          subject: `【クレームソルブ】${c.company.name} から解決の申し出が届いています`,
           body: `あなたの投稿「${c.title}」について、${c.company.name} から解決の申し出が届きました。応じるかどうかはあなたの自由です(応じなくても不利益はありません)。\n専用ページ: ${base}/m/${token}`,
           purpose: "resolution_offer",
         });
@@ -215,7 +215,7 @@ export async function POST(req: NextRequest) {
         });
         await mailService.send({
           to: c.user.email,
-          subject: "【クレソル】あなたの投稿に企業が異議を申し立てました",
+          subject: "【クレームソルブ】あなたの投稿に企業が異議を申し立てました",
           body: `7日以内(${deadline.toLocaleDateString("ja-JP")}まで)に維持/修正/非表示をご判断ください。無応答の場合は自動で非表示になります。`,
           purpose: "objection_notice",
         });

@@ -3,7 +3,7 @@ import { getAllFlags, publicPostCount } from "@/lib/flags";
 import { AdminActionButton, FlagToggle } from "@/components/AdminButton";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "運営管理 | クレソル" };
+export const metadata = { title: "運営管理 | クレームソルブ" };
 
 export default async function AdminPage() {
   const flags = await getAllFlags();

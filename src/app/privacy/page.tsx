@@ -1,4 +1,4 @@
-export const metadata = { title: "プライバシーポリシー | クレソル" };
+export const metadata = { title: "プライバシーポリシー | クレームソルブ" };
 
 export default function PrivacyPage() {
   return (

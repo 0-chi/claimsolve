@@ -3,7 +3,7 @@ import Link from "next/link";
 import KycForm from "@/components/KycForm";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "本人確認(任意)| クレソル" };
+export const metadata = { title: "本人確認(任意)| クレームソルブ" };
 
 export default async function KycPage() {
   const user = await getCurrentUser();

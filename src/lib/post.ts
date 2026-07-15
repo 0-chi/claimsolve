@@ -224,7 +224,7 @@ export async function submitPastReview(input: PastReviewInput) {
   if (company.notifyEmail) {
     await mailService.send({
       to: company.notifyEmail,
-      subject: "【クレソル】新着レビューのお知らせ(週次ダイジェスト対象)",
+      subject: "【クレームソルブ】新着レビューのお知らせ(週次ダイジェスト対象)",
       body: `${company.name} 宛に新しいレビューが投稿されました。週次ダイジェストにまとめてお届けします。`,
       purpose: "weekly_digest",
       status: "queued",
@@ -239,7 +239,7 @@ export async function submitPastReview(input: PastReviewInput) {
   for (const w of watchers) {
     await mailService.send({
       to: w.user.email,
-      subject: `【クレソル】ウォッチ中の${company.name}に新着レビュー`,
+      subject: `【クレームソルブ】ウォッチ中の${company.name}に新着レビュー`,
       body: `${company.name} に新しいレビューが投稿されました。`,
       purpose: "watch_notify",
     });

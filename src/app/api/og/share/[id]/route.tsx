@@ -30,7 +30,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
           padding: 60,
         }}
       >
-        <div style={{ display: "flex", fontSize: 32, opacity: 0.9 }}>クレソルで解決しました</div>
+        <div style={{ display: "flex", fontSize: 32, opacity: 0.9 }}>クレームソルブで解決しました</div>
         <div style={{ display: "flex", fontSize: 60, fontWeight: 700, marginTop: 20, textAlign: "center" }}>
           {companyName}
         </div>

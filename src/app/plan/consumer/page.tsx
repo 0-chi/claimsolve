@@ -5,7 +5,7 @@ import { prisma } from "@/lib/prisma";
 import ConsumerPlanActions from "@/components/ConsumerPlanActions";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "個人閲覧プラン | クレソル" };
+export const metadata = { title: "個人閲覧プラン | クレームソルブ" };
 
 export default async function ConsumerPlanPage() {
   const monetization = await getFlag("monetization_enabled");

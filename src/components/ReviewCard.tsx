@@ -110,7 +110,7 @@ export function ReviewCard({
           <div className="chip bg-brand-100 text-brand-700">対策(企業からの自己申告)</div>
           <p className="mt-1 text-slate-700">{n.body}</p>
           <p className="mt-1 text-[10px] text-slate-400">
-            ※企業からの自己申告です。クレソルが内容を検証したものではありません。
+            ※企業からの自己申告です。クレームソルブが内容を検証したものではありません。
           </p>
         </div>
       ))}

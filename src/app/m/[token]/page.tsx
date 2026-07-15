@@ -5,7 +5,7 @@ import MagicClient from "@/components/MagicClient";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "投稿者専用ページ | クレソル", robots: { index: false } };
+export const metadata = { title: "投稿者専用ページ | クレームソルブ", robots: { index: false } };
 
 export default async function MagicPage({ params }: { params: { token: string } }) {
   const loaded = await loadMagicComplaint(params.token);

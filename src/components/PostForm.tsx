@@ -491,12 +491,12 @@ export default function PostForm({
           {/* 通知の正直表示(liveのみ・3状態)v1.5 §1変更4 */}
           {lane === "live" && notifyState === "registered" && (
             <div className="rounded-lg bg-emerald-50 p-3 text-xs text-emerald-800">
-              この企業はクレソルに登録済みです。あなたの報告は運営の確認のうえ公開され、企業に届きます。返答があれば通知します。
+              この企業はクレームソルブに登録済みです。あなたの報告は運営の確認のうえ公開され、企業に届きます。返答があれば通知します。
             </div>
           )}
           {lane === "live" && notifyState === "has_notify" && (
             <div className="rounded-lg bg-sky-50 p-3 text-xs text-sky-800">
-              この企業はまだクレソルに登録していません。報告は運営の確認のうえ公開され、通知メールも送りますが、返答があるかは分かりません。通知が届いた場合、返答がなかったことも記録として残ります。
+              この企業はまだクレームソルブに登録していません。報告は運営の確認のうえ公開され、通知メールも送りますが、返答があるかは分かりません。通知が届いた場合、返答がなかったことも記録として残ります。
             </div>
           )}
           {lane === "live" && notifyState === "no_contact" && (

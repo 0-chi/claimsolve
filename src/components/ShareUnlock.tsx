@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 
 // シェアで24時間の閲覧権を得る(§5.2)。
 // 便益提供の明示は固定文言(編集不可)。金銭的報酬は提供しない。
-const DISCLOSURE = "クレソルの閲覧特典を利用しています";
+const DISCLOSURE = "クレームソルブの閲覧特典を利用しています";
 
 export default function ShareUnlock({ appUrl }: { appUrl: string }) {
   const router = useRouter();
@@ -32,7 +32,7 @@ export default function ShareUnlock({ appUrl }: { appUrl: string }) {
       return;
     }
     // 発行成功 → シェアウィンドウを開く(便益明示の固定文言を含む)
-    const text = `企業のクレーム対応を評価するクレソルを見ています。${DISCLOSURE} #クレソル`;
+    const text = `企業のクレーム対応を評価するクレームソルブを見ています。${DISCLOSURE} #クレームソルブ`;
     const url =
       channel === "x"
         ? `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(appUrl)}`

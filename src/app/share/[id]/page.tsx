@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   const base = process.env.APP_URL || "http://localhost:3000";
   const img = `${base}/api/og/share/${params.id}`;
   return {
-    title: "解決しました | クレソル",
+    title: "解決しました | クレームソルブ",
     openGraph: { images: [img] },
     twitter: { card: "summary_large_image", images: [img] },
   };
@@ -25,7 +25,7 @@ export default async function SharePage({ params }: { params: { id: string } }) 
 
   const base = process.env.APP_URL || "http://localhost:3000";
   const shareUrl = `${base}/share/${params.id}`;
-  const text = `${complaint.company.name}のトラブルが解決しました! #クレソル`;
+  const text = `${complaint.company.name}のトラブルが解決しました! #クレームソルブ`;
   const xUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(shareUrl)}`;
   const lineUrl = `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}`;
 

@@ -7,7 +7,7 @@ export function generateStaticParams() {
 }
 
 export function generateMetadata({ params }: { params: { category: string } }) {
-  return { title: `${categoryLabel(params.category)}のクレーム対応ガイド | クレソル` };
+  return { title: `${categoryLabel(params.category)}のクレーム対応ガイド | クレームソルブ` };
 }
 
 // /guide/{category} のガイド記事一覧(v1.5 §5)

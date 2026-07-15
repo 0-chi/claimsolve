@@ -5,7 +5,7 @@ export const SHARE_VIEWPASS_HOURS = 24;
 export const SHARE_COOLDOWN_DAYS = 7; // 1ユーザーにつき7日に1回まで
 
 // 便益提供の明示(景表法/ステマ規制対応)。編集不可の固定文言。
-export const SHARE_DISCLOSURE = "クレソルの閲覧特典を利用しています";
+export const SHARE_DISCLOSURE = "クレームソルブの閲覧特典を利用しています";
 
 // 金品・ポイント等の金銭的報酬は一切提供しない(閲覧権のみ)。
 

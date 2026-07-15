@@ -66,20 +66,20 @@ export default async function HomePage() {
               消費生活センターに寄せられる相談は、年間およそ91万件。すべてPIO-NETという行政のデータベースに記録されています。でも、次に同じ会社と取引しようとしている人が、その中身を読むことはできません。企業名も、原則として公表されません。
             </p>
             <p>
-              クレソルは、そこを引き受けます。あなたが書いた5分が、次に同じ目にあうはずだった誰かを守ります。
+              クレームソルブは、そこを引き受けます。あなたが書いた5分が、次に同じ目にあうはずだった誰かを守ります。
             </p>
           </section>
 
           {/* 3.4 対比表(1行目=あっせん。順序変更禁止) */}
           <section className="mx-auto max-w-xl space-y-2">
-            <h2 className="text-center text-base font-bold">消費生活センターとクレソル</h2>
+            <h2 className="text-center text-base font-bold">消費生活センターとクレームソルブ</h2>
             <div className="overflow-x-auto">
               <table className="w-full border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-500">
                     <th className="py-2 text-left font-medium"></th>
                     <th className="py-2 px-2 font-medium">消費生活センター</th>
-                    <th className="py-2 px-2 font-medium text-brand-700">クレソル</th>
+                    <th className="py-2 px-2 font-medium text-brand-700">クレームソルブ</th>
                   </tr>
                 </thead>
                 <tbody className="text-slate-700">
@@ -103,7 +103,7 @@ export default async function HomePage() {
               <br />——いちばん多いのに、いちばん残っていないのが、この記録です。
             </p>
             <p className="text-sm text-slate-700">
-              クレソルは「<strong>なぜ、言わなかったのか</strong>」を聞きます。企業を告発するためではありません。
+              クレームソルブは「<strong>なぜ、言わなかったのか</strong>」を聞きます。企業を告発するためではありません。
               「連絡先が分からなかった」「繋がらなかった」という理由が集まると、
               <strong>窓口の届きにくさが数字で見えてくる</strong>からです。
             </p>

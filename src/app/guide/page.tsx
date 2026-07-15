@@ -1,4 +1,4 @@
-export const metadata = { title: "レビューガイドライン | クレソル" };
+export const metadata = { title: "レビューガイドライン | クレームソルブ" };
 
 export default function GuidePage() {
   return (
@@ -59,7 +59,7 @@ export default function GuidePage() {
       <section className="space-y-2">
         <h2 className="font-bold">対策バッジと解決済みバッジ</h2>
         <p>
-          <strong>対策バッジは企業の自己申告</strong>です(80字以上・元の投稿とセットで公開・クレソルは内容を検証しません)。
+          <strong>対策バッジは企業の自己申告</strong>です(80字以上・元の投稿とセットで公開・クレームソルブは内容を検証しません)。
           <strong>解決済みバッジは投稿者本人しか付けられません</strong>。企業が作成・編集・削除することはできず、
           両方が揃ったときにのみ「対策・解決済み」の完全バッジが表示されます。完全バッジは金銭では買えません。
         </p>

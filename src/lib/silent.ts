@@ -148,7 +148,7 @@ export async function submitSilentReport(input: SilentInput) {
   if (company.notifyEmail) {
     await mailService.send({
       to: company.notifyEmail,
-      subject: "【クレソル】お客様の声(週次ダイジェスト対象)",
+      subject: "【クレームソルブ】お客様の声(週次ダイジェスト対象)",
       body: `${company.name} について「言わずに終わった不満(沈黙レポート)」が届いています。週次ダイジェストにまとめてお届けします。ご確認のうえ、必要に応じて異議申し立てが可能です。`,
       purpose: "weekly_digest_silent",
       status: "queued",
