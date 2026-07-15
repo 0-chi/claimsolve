@@ -1,4 +1,4 @@
 {
-  "buildCommand": "prisma generate && next build",
+  "buildCommand": "npx prisma generate && DATABASE_URL=\"file:./prod.db\" npx prisma db push --force-reset --skip-generate && DATABASE_URL=\"file:./prod.db\" npm run seed && next build",
   "outputDirectory": ".next"
 }
