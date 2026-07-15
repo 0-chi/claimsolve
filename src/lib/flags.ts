@@ -49,9 +49,15 @@ export async function publicPostCount(): Promise<number> {
   return prisma.complaint.count({ where: publicComplaintWhere });
 }
 
+// ゲート自動ONの運用スイッチ。会員が増えて閲覧権(期間制限)を再開するときに
+// true に戻す。false の間は件数に関係なく自動ONせず、全文が読み放題。
+// (admin からの手動ONはこの値に関係なく常に有効)
+export const GATE_AUTO_ACTIVATION = false;
+
 // 200件超で自動ON(admin が手動上書きした場合は尊重して自動変更しない)。
 export async function maybeAutoActivateGate(): Promise<boolean> {
   const f = await prisma.featureFlag.findUnique({ where: { key: "gate_enabled" } });
+  if (!GATE_AUTO_ACTIVATION) return f?.value ?? false;
   const manuallyOverridden = f?.updatedBy === "admin";
   if (manuallyOverridden) return f?.value ?? false;
 

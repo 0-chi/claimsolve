@@ -14,6 +14,7 @@ import {
   type StaffIssue,
 } from "@/lib/scoring";
 import { MIN_POST_CHARS, MIN_VIEWPASS_CHARS, MAX_SILENCE_REASONS, MIN_STAFF_CHARS } from "@/lib/post-rules";
+import { SHOW_VIEWPASS_UI } from "@/lib/ui-flags";
 import { track } from "@/lib/track";
 
 type Lane = "past" | "live" | "silent" | "staff";
@@ -595,19 +596,21 @@ export default function PostForm({
               <span className={toPost > 0 ? "text-rose-500" : "text-emerald-600"}>
                 {toPost > 0 ? `投稿可能まで${toPost}字` : "投稿可能"}
               </span>
-              {lane === "silent" ? (
-                <span className={toPost > 0 ? "text-slate-400" : "text-emerald-600"}>
-                  {toPost > 0 ? "閲覧権(3日)まで50字" : "閲覧権(3日)獲得"}
-                </span>
-              ) : lane === "staff" ? (
-                <span className={toPost > 0 ? "text-slate-400" : "text-emerald-600"}>
-                  {toPost > 0 ? "閲覧権(24時間)まで80字" : "閲覧権(24時間)獲得"}
-                </span>
-              ) : (
-                <span className={toViewPass > 0 ? "text-slate-400" : "text-emerald-600"}>
-                  {toViewPass > 0 ? `閲覧権獲得まで${toViewPass}字` : "閲覧権獲得ライン到達"}
-                </span>
-              )}
+              {/* 閲覧権カウンター(読み放題運用中は非表示) */}
+              {SHOW_VIEWPASS_UI &&
+                (lane === "silent" ? (
+                  <span className={toPost > 0 ? "text-slate-400" : "text-emerald-600"}>
+                    {toPost > 0 ? "閲覧権(3日)まで50字" : "閲覧権(3日)獲得"}
+                  </span>
+                ) : lane === "staff" ? (
+                  <span className={toPost > 0 ? "text-slate-400" : "text-emerald-600"}>
+                    {toPost > 0 ? "閲覧権(24時間)まで80字" : "閲覧権(24時間)獲得"}
+                  </span>
+                ) : (
+                  <span className={toViewPass > 0 ? "text-slate-400" : "text-emerald-600"}>
+                    {toViewPass > 0 ? `閲覧権獲得まで${toViewPass}字` : "閲覧権獲得ライン到達"}
+                  </span>
+                ))}
             </div>
           </div>
 
@@ -913,7 +916,8 @@ export default function PostForm({
           <div className="text-3xl">🔒</div>
           <p className="font-semibold">担当者への申し出を企業に届けました</p>
           <p className="text-sm text-slate-600">
-            この申し出は完全非公開です。公開ページには一切表示されません。閲覧権(24時間)を付与しました。
+            この申し出は完全非公開です。公開ページには一切表示されません。
+            {SHOW_VIEWPASS_UI && "閲覧権(24時間)を付与しました。"}
           </p>
           <button className="btn-primary" onClick={() => router.push("/")}>
             トップへ戻る
@@ -926,7 +930,8 @@ export default function PostForm({
           <div className="text-3xl">📝</div>
           <p className="font-semibold">「言わずに終わった声」を記録しました</p>
           <p className="text-sm text-slate-600">
-            本文50字以上のため、閲覧権(3日)を付与しました。このレポートはスコアには影響しません。
+            {SHOW_VIEWPASS_UI && "本文50字以上のため、閲覧権(3日)を付与しました。"}
+            このレポートはスコアには影響しません。
           </p>
           <div className="flex flex-col gap-2">
             <button
@@ -966,9 +971,11 @@ export default function PostForm({
           <div className="text-3xl">✅</div>
           <p className="font-semibold">レビューを公開しました</p>
           <p className="text-sm text-slate-600">
-            {result.viewPassGranted
-              ? "本文100字以上のため、閲覧権(1ヶ月)と企業ウォッチ1社を付与しました。"
-              : "本文が100字未満のため閲覧権は付与されませんでした(公開・スコア算入はされます)。"}
+            {SHOW_VIEWPASS_UI
+              ? result.viewPassGranted
+                ? "本文100字以上のため、閲覧権(1ヶ月)と企業ウォッチ1社を付与しました。"
+                : "本文が100字未満のため閲覧権は付与されませんでした(公開・スコア算入はされます)。"
+              : "投稿ありがとうございます。あなたの記録が、次の誰かを守ります。"}
           </p>
           <div className="flex flex-col gap-2">
             <button

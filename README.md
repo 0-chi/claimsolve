@@ -80,7 +80,7 @@ npm run dev               # http://localhost:3000
 
 | キー | 初期値 | 役割 |
 |---|---|---|
-| `gate_enabled` | OFF | 閲覧ゲート。公開レビュー総数 **>200 で自動ON**(admin上書き可) |
+| `gate_enabled` | OFF | 閲覧ゲート。**自動ONは運用停止中(読み放題)**。会員が増えたら `src/lib/flags.ts` の `GATE_AUTO_ACTIVATION` を true に戻すと >200 で自動ON(admin手動ONは常に有効) |
 | `monetization_enabled` | OFF | 課金開始。個人閲覧プラン(150円)の表示・販売を制御 |
 | `live_enabled` | **OFF** | ライブレーンの全導線。ONで即座に有効化 |
 

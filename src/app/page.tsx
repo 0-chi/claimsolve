@@ -4,6 +4,7 @@ import { CompanyCard } from "@/components/CompanyCard";
 import { maybeAutoActivateGate, getAllFlags } from "@/lib/flags";
 import { companyPath } from "@/lib/company-url";
 import { categoryLabel, yearMonthLabel, CATEGORY_LABELS } from "@/lib/labels";
+import { SHOW_HERO_CTA, SHOW_VIEWPASS_UI } from "@/lib/ui-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -32,12 +33,14 @@ export default async function HomePage() {
             <p className="mx-auto max-w-md text-sm text-slate-500">
               誰にも言えないまま終わった、あの一件。次に同じ目にあう誰かへの「申し送り」に変える場所をつくりました。
             </p>
-            <div className="mx-auto flex max-w-sm flex-col gap-2">
-              <Link href="/post" className="btn-primary w-full">まずは1件、書く</Link>
-              <Link href="/post?lane=silent" className="btn-outline w-full">
-                言わずに終わったことを記録する
-              </Link>
-            </div>
+            {SHOW_HERO_CTA && (
+              <div className="mx-auto flex max-w-sm flex-col gap-2">
+                <Link href="/post" className="btn-primary w-full">まずは1件、書く</Link>
+                <Link href="/post?lane=silent" className="btn-outline w-full">
+                  言わずに終わったことを記録する
+                </Link>
+              </div>
+            )}
           </section>
 
           {/* 3.2 事実 */}
@@ -110,9 +113,13 @@ export default async function HomePage() {
               ))}
               <span className="chip bg-white text-slate-400 ring-1 ring-slate-200">…</span>
             </div>
-            <p className="text-sm text-slate-700">
-              選ぶだけ、50字から。<strong>3日間、他の人の記録が読み放題になります。</strong>
-            </p>
+            {SHOW_VIEWPASS_UI ? (
+              <p className="text-sm text-slate-700">
+                選ぶだけ、50字から。<strong>3日間、他の人の記録が読み放題になります。</strong>
+              </p>
+            ) : (
+              <p className="text-sm text-slate-700">選ぶだけ、50字から。</p>
+            )}
             <Link href="/post?lane=silent" className="btn-primary w-full">
               言わずに終わったことを記録する
             </Link>
@@ -128,35 +135,37 @@ export default async function HomePage() {
                     <th className="py-2 text-left font-medium"></th>
                     <th className="py-2 px-1 text-left font-medium">何を書く</th>
                     <th className="py-2 px-1 text-left font-medium">必要なもの</th>
-                    <th className="py-2 px-1 text-left font-medium">もらえるもの</th>
+                    {SHOW_VIEWPASS_UI && (
+                      <th className="py-2 px-1 text-left font-medium">もらえるもの</th>
+                    )}
                   </tr>
                 </thead>
                 <tbody className="text-slate-700">
                   <tr className="border-b border-slate-100">
                     <td className="py-2 font-semibold">レビュー</td>
                     <td className="px-1">終わったトラブルの対応</td>
-                    <td className="px-1">3問+50字(閲覧権は100字〜)</td>
-                    <td className="px-1">閲覧権1ヶ月</td>
+                    <td className="px-1">{SHOW_VIEWPASS_UI ? "3問+50字(閲覧権は100字〜)" : "3問+50字"}</td>
+                    {SHOW_VIEWPASS_UI && <td className="px-1">閲覧権1ヶ月</td>}
                   </tr>
                   {flags.live_enabled && (
                     <tr className="border-b border-slate-100">
                       <td className="py-2 font-semibold">記録</td>
                       <td className="px-1">進行中のトラブル</td>
                       <td className="px-1">経緯+企業選択 ※運営の確認のうえ公開・通知</td>
-                      <td className="px-1">企業へ通知+後日評価</td>
+                      {SHOW_VIEWPASS_UI && <td className="px-1">企業へ通知+後日評価</td>}
                     </tr>
                   )}
                   <tr className="border-b border-slate-100">
                     <td className="py-2 font-semibold">沈黙レポート</td>
                     <td className="px-1">言わずに終わった不満</td>
                     <td className="px-1">理由を選ぶ(最大2)+50字</td>
-                    <td className="px-1">閲覧権3日</td>
+                    {SHOW_VIEWPASS_UI && <td className="px-1">閲覧権3日</td>}
                   </tr>
                   <tr>
                     <td className="py-2 font-semibold">担当者への申し出</td>
                     <td className="px-1">担当者の対応(非公開・企業にだけ届く)</td>
                     <td className="px-1">部署・日時・チャネル+80字</td>
-                    <td className="px-1">閲覧権24時間</td>
+                    {SHOW_VIEWPASS_UI && <td className="px-1">閲覧権24時間</td>}
                   </tr>
                 </tbody>
               </table>
@@ -166,15 +175,17 @@ export default async function HomePage() {
             </p>
           </section>
 
-          {/* 3.7 早期特典(gate OFFのみ・対象はreview由来のみ) */}
-          <section className="card mx-auto max-w-xl border-brand-300 bg-brand-50/50 text-center">
-            <h2 className="text-base font-bold text-slate-900">いまなら、誰でも全部読めます。</h2>
-            <p className="mt-2 text-sm text-slate-600">
-              公開された投稿が200件を超えた時点で、全文閲覧は会員限定に切り替わります。
-              いま<strong>本文100字以上のレビュー</strong>を書いておけば、切り替わった日から
-              <strong>1ヶ月ぶん</strong>の閲覧権があなたに残ります。
-            </p>
-          </section>
+          {/* 3.7 早期特典(gate OFFのみ・対象はreview由来のみ)。読み放題運用中は非表示 */}
+          {SHOW_VIEWPASS_UI && (
+            <section className="card mx-auto max-w-xl border-brand-300 bg-brand-50/50 text-center">
+              <h2 className="text-base font-bold text-slate-900">いまなら、誰でも全部読めます。</h2>
+              <p className="mt-2 text-sm text-slate-600">
+                公開された投稿が200件を超えた時点で、全文閲覧は会員限定に切り替わります。
+                いま<strong>本文100字以上のレビュー</strong>を書いておけば、切り替わった日から
+                <strong>1ヶ月ぶん</strong>の閲覧権があなたに残ります。
+              </p>
+            </section>
+          )}
 
           {/* 3.8 安全性 */}
           <section className="mx-auto max-w-xl">

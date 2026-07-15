@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeAll } from "vitest";
 import { prisma } from "@/lib/prisma";
 import { submitPastReview, PostError } from "@/lib/post";
-import { maybeAutoActivateGate, getFlag, getGateActivatedAt, publicPostCount } from "@/lib/flags";
+import { maybeAutoActivateGate, getFlag, getGateActivatedAt, publicPostCount, setFlag } from "@/lib/flags";
 
 const CORP = "9000000000000";
 
@@ -99,8 +99,8 @@ describe("past投稿 → 自動公開 → 閲覧権付与", () => {
   });
 });
 
-describe("ゲートの200件自動発動", () => {
-  it("200件ではOFF、201件目でON", async () => {
+describe("ゲートの200件自動発動(現在は運用停止中=読み放題)", () => {
+  it("201件でも自動ONせず、adminの手動ONは有効", async () => {
     const company = await makeCompany("9000000009999", "gateco");
     const user = await prisma.user.create({
       data: { displayName: "ゲート主", email: "gate@example.com", phone: "09099990000" },
@@ -129,10 +129,14 @@ describe("ゲートの200件自動発動", () => {
     await maybeAutoActivateGate();
     expect(await getFlag("gate_enabled")).toBe(false);
 
-    // 201件目
+    // 201件目でも自動ONしない(GATE_AUTO_ACTIVATION=false の間は読み放題)
     await pad(1);
     expect(await publicPostCount()).toBe(201);
     await maybeAutoActivateGate();
+    expect(await getFlag("gate_enabled")).toBe(false);
+
+    // admin の手動ONはこれまで通り有効(会員が増えたら再開する想定)
+    await setFlag("gate_enabled", true, "admin");
     expect(await getFlag("gate_enabled")).toBe(true);
     expect(await getGateActivatedAt()).not.toBeNull();
 

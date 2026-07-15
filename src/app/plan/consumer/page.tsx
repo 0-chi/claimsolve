@@ -17,7 +17,7 @@ export default async function ConsumerPlanPage() {
         <h1 className="text-xl font-bold">個人閲覧プラン</h1>
         <p className="rounded-lg bg-slate-100 p-4 text-sm text-slate-500">
           現在は無料運営期間のため、個人閲覧プランは提供していません。
-          レビューを投稿すると閲覧権(1ヶ月)が得られます。
+          すべてのレビューを無料でお読みいただけます。
         </p>
         <Link href="/post" className="btn-primary inline-flex">レビューを投稿する</Link>
       </div>

@@ -33,10 +33,10 @@ export async function GET(_req: Request, { params }: { params: { param: string }
           padding: 64,
           fontSize: 36,
           color: "#0f172a",
-          borderBottom: "16px solid #0f9d78",
+          borderBottom: "16px solid #dc2626",
         }}
       >
-        <div style={{ display: "flex", fontSize: 28, color: "#0b7d60", fontWeight: 700 }}>クレソル</div>
+        <div style={{ display: "flex", fontSize: 28, color: "#b91c1c", fontWeight: 700 }}>クレソル</div>
         <div style={{ display: "flex", fontSize: 52, fontWeight: 700, marginTop: 16 }}>{company.name}</div>
         <div style={{ display: "flex", alignItems: "baseline", gap: 24, marginTop: 28 }}>
           <div style={{ display: "flex", fontSize: 84, fontWeight: 800 }}>
@@ -47,8 +47,8 @@ export async function GET(_req: Request, { params }: { params: { param: string }
               style={{
                 display: "flex",
                 fontSize: 30,
-                background: "#eef7f4",
-                color: "#0b7d60",
+                background: "#fef2f2",
+                color: "#b91c1c",
                 padding: "8px 20px",
                 borderRadius: 999,
               }}

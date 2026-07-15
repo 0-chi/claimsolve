@@ -24,7 +24,7 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "linear-gradient(135deg,#0b7d60,#0f9d78)",
+          background: "linear-gradient(135deg,#b91c1c,#dc2626)",
           color: "white",
           fontSize: 48,
           padding: 60,

@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { ARTICLES, getArticle, type ArticleSection } from "@/content/articles";
 import { getFlag } from "@/lib/flags";
 import { categoryLabel } from "@/lib/labels";
+import { SHOW_VIEWPASS_UI } from "@/lib/ui-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +44,9 @@ function CtaBlock({ kind, liveEnabled }: { kind: ArticleSection["cta"]; liveEnab
     return (
       <div className="my-4 rounded-xl border border-brand-200 bg-brand-50 p-4">
         <p className="text-sm font-semibold text-slate-800">終わったトラブルを、次の誰かのために</p>
-        <p className="mt-1 text-xs text-slate-500">評価は3問。本文100字以上で閲覧権1ヶ月がつきます。</p>
+        <p className="mt-1 text-xs text-slate-500">
+          評価は3問。{SHOW_VIEWPASS_UI && "本文100字以上で閲覧権1ヶ月がつきます。"}
+        </p>
         <Link href="/post" className="btn-primary mt-2 inline-flex text-sm">
           レビューを書く
         </Link>
@@ -55,7 +58,8 @@ function CtaBlock({ kind, liveEnabled }: { kind: ArticleSection["cta"]; liveEnab
       <div className="my-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
         <p className="text-sm font-semibold text-slate-800">まだ企業に言っていないなら、まず記録だけでも</p>
         <p className="mt-1 text-xs text-slate-500">
-          「なぜ言わなかったか」を選ぶだけ、50字から。3日間の閲覧権がつきます。
+          「なぜ言わなかったか」を選ぶだけ、50字から。
+          {SHOW_VIEWPASS_UI && "3日間の閲覧権がつきます。"}
         </p>
         <Link href="/post?lane=silent" className="btn-outline mt-2 inline-flex text-sm">
           言わずに終わったことを記録する
