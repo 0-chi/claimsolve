@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 // ハンバーガーメニューの項目(上から順)。リンク切れが無いよう全ページ実在。
 const MENU_ITEMS: { href: string; label: string }[] = [
+  { href: "/", label: "トップページ" },
   { href: "/about", label: "クレームソルブについて" },
   { href: "/business", label: "企業の皆様へ" },
   { href: "/login", label: "ログイン" },
