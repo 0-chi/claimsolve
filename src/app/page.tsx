@@ -4,7 +4,7 @@ import { CompanyCard } from "@/components/CompanyCard";
 import { maybeAutoActivateGate, getAllFlags } from "@/lib/flags";
 import { companyPath } from "@/lib/company-url";
 import { categoryLabel, yearMonthLabel, CATEGORY_LABELS } from "@/lib/labels";
-import { SHOW_HERO_CTA, SHOW_VIEWPASS_UI } from "@/lib/ui-flags";
+import { SHOW_HERO_CTA, SHOW_VIEWPASS_UI, SHOW_WRITE_TYPE_COLUMN } from "@/lib/ui-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -136,7 +136,7 @@ export default async function HomePage() {
               <table className="w-full border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-slate-200 text-slate-500">
-                    <th className="py-2 text-left font-medium"></th>
+                    {SHOW_WRITE_TYPE_COLUMN && <th className="py-2 text-left font-medium"></th>}
                     <th className="py-2 px-1 text-left font-medium">何を書く</th>
                     <th className="py-2 px-1 text-left font-medium">必要なもの</th>
                     {SHOW_VIEWPASS_UI && (
@@ -146,28 +146,28 @@ export default async function HomePage() {
                 </thead>
                 <tbody className="text-slate-700">
                   <tr className="border-b border-slate-100">
-                    <td className="py-2 font-semibold">レビュー</td>
-                    <td className="px-1">終わったトラブルの対応</td>
+                    {SHOW_WRITE_TYPE_COLUMN && <td className="py-2 font-semibold">レビュー</td>}
+                    <td className="px-1">終わったトラブルのレビュー</td>
                     <td className="px-1">{SHOW_VIEWPASS_UI ? "3問+50字(閲覧権は100字〜)" : "3問+50字"}</td>
                     {SHOW_VIEWPASS_UI && <td className="px-1">閲覧権1ヶ月</td>}
                   </tr>
                   {flags.live_enabled && (
                     <tr className="border-b border-slate-100">
-                      <td className="py-2 font-semibold">記録</td>
-                      <td className="px-1">進行中のトラブル</td>
+                      {SHOW_WRITE_TYPE_COLUMN && <td className="py-2 font-semibold">記録</td>}
+                      <td className="px-1">現在発生している不満</td>
                       <td className="px-1">経緯+企業選択 ※運営の確認のうえ公開・通知</td>
                       {SHOW_VIEWPASS_UI && <td className="px-1">企業へ通知+後日評価</td>}
                     </tr>
                   )}
                   <tr className="border-b border-slate-100">
-                    <td className="py-2 font-semibold">沈黙レポート</td>
+                    {SHOW_WRITE_TYPE_COLUMN && <td className="py-2 font-semibold">沈黙レポート</td>}
                     <td className="px-1">言わずに終わった不満</td>
                     <td className="px-1">理由を選ぶ(最大2)+50字</td>
                     {SHOW_VIEWPASS_UI && <td className="px-1">閲覧権3日</td>}
                   </tr>
                   <tr>
-                    <td className="py-2 font-semibold">担当者への申し出</td>
-                    <td className="px-1">担当者の対応(非公開・企業にだけ届く)</td>
+                    {SHOW_WRITE_TYPE_COLUMN && <td className="py-2 font-semibold">担当者への申し出</td>}
+                    <td className="px-1">担当者の対応(一般公開されないが企業に通知)</td>
                     <td className="px-1">部署・日時・チャネル+80字</td>
                     {SHOW_VIEWPASS_UI && <td className="px-1">閲覧権24時間</td>}
                   </tr>
@@ -194,8 +194,8 @@ export default async function HomePage() {
           {/* 3.8 安全性 */}
           <section className="mx-auto max-w-xl">
             <ul className="grid gap-2 text-xs text-slate-600 sm:grid-cols-3">
-              <li className="rounded-lg bg-slate-50 p-3">実名は不要。ニックネームで投稿できます</li>
-              <li className="rounded-lg bg-slate-50 p-3">個人名・電話番号などは投稿前に自動ブロック</li>
+              <li className="rounded-lg bg-slate-50 p-3 text-base font-medium">実名は不要。ニックネームで投稿できます</li>
+              <li className="rounded-lg bg-slate-50 p-3">個人名・電話番号などの記載は投稿前に自動ブロック</li>
               <li className="rounded-lg bg-slate-50 p-3">企業から異議が出ても、維持・修正・非表示を決めるのは投稿者本人</li>
             </ul>
           </section>
