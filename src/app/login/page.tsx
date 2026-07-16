@@ -1,5 +1,6 @@
 import Link from "next/link";
 import LoginForm from "@/components/LoginForm";
+import { SHOW_BUSINESS_ENTRY } from "@/lib/ui-flags";
 
 export const dynamic = "force-dynamic";
 
@@ -14,13 +15,15 @@ export default function LoginPage() {
       <p className="text-xs text-slate-400">
         アカウントをお持ちでない方は、レビューを投稿すると自動で登録されます。
       </p>
-      <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
-        企業の担当者の方は{" "}
-        <Link href="/company-portal/login" className="font-medium text-brand-700 underline">
-          企業ログイン
-        </Link>{" "}
-        からお入りください(メール+パスワード方式)。
-      </div>
+      {SHOW_BUSINESS_ENTRY && (
+        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-500">
+          企業の担当者の方は{" "}
+          <Link href="/company-portal/login" className="font-medium text-brand-700 underline">
+            企業ログイン
+          </Link>{" "}
+          からお入りください(メール+パスワード方式)。
+        </div>
+      )}
     </div>
   );
 }

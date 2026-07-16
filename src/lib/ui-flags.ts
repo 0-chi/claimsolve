@@ -7,3 +7,6 @@ export const SHOW_VIEWPASS_UI = false;
 // 「書き方は4つ」表のカテゴリ名列(レビュー/記録/沈黙レポート/担当者への申し出)。
 // データは残したまま表示だけ隠す。
 export const SHOW_WRITE_TYPE_COLUMN = false;
+// 企業向け導線(ハンバーガーメニューの「企業の皆様へ」・個人ログイン画面の企業ログイン案内)。
+// いずれ企業側を公開するタイミングで true に戻す。
+export const SHOW_BUSINESS_ENTRY = false;

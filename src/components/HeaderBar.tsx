@@ -1,12 +1,13 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { SHOW_BUSINESS_ENTRY } from "@/lib/ui-flags";
 
 // ハンバーガーメニューの項目(上から順)。リンク切れが無いよう全ページ実在。
 const MENU_ITEMS: { href: string; label: string }[] = [
   { href: "/", label: "トップページ" },
   { href: "/about", label: "クレームソルブについて" },
-  { href: "/business", label: "企業の皆様へ" },
+  ...(SHOW_BUSINESS_ENTRY ? [{ href: "/business", label: "企業の皆様へ" }] : []),
   { href: "/login", label: "ログイン" },
   { href: "/menu", label: "サービスメニュー" },
   { href: "/support", label: "サポート" },
