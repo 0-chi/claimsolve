@@ -28,10 +28,12 @@ export default async function HomePage() {
           {/* 3.1 ヒーロー */}
           <section className="space-y-4 pt-4 text-center">
             <h1 className="text-2xl font-bold leading-snug text-slate-900">
-              その&quot;泣き寝入り&quot;、供養しませんか。
+              心の中にしまった怒り、供養しませんか。
+              <br />
+              それが誰かを救うかもしれません。
             </h1>
             <p className="mx-auto max-w-md text-sm text-slate-500">
-              誰にも言えないまま終わった、あの一件。次に同じ目にあう誰かへの「申し送り」に変える場所をつくりました。
+              納得せずに終わったあの一件。次に同じ目にあう誰かへの「申し送り」に変える場所をつくりました。
             </p>
             {SHOW_HERO_CTA && (
               <div className="mx-auto flex max-w-sm flex-col gap-2">
