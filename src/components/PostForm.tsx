@@ -369,7 +369,7 @@ export default function PostForm({
                 setStep("company");
               }}
             >
-              <div className="font-semibold">進行中のトラブルを企業に届ける</div>
+              <div className="font-semibold">現在発生している不満・困り事を企業に届ける</div>
               <p className="text-xs text-slate-500">企業に通知し、非公開スレッドで解決を目指します。</p>
             </button>
           )}
