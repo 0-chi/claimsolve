@@ -27,10 +27,10 @@ export default async function HomePage() {
         <>
           {/* 3.1 ヒーロー */}
           <section className="space-y-4 pt-4 text-center">
-            <h1 className="text-2xl font-bold leading-snug text-slate-900">
-              心の中にしまった怒り、供養しませんか。
+            <h1 className="text-base font-bold leading-snug text-slate-900">
+              心の中にしまった怒りここに供養しませんか。
               <br />
-              それが誰かを救うかもしれません。
+              その怒りが誰かを救うかもしれません。
             </h1>
             <p className="mx-auto max-w-md text-sm text-slate-500">
               納得せずに終わったあの一件。次に同じ目にあう誰かへの「申し送り」に変える場所をつくりました。
