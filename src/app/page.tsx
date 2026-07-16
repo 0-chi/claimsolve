@@ -49,13 +49,15 @@ export default async function HomePage() {
           <section className="mx-auto max-w-md space-y-1 text-center">
             <p className="text-sm text-slate-700">
               消費生活相談は年間およそ<strong className="text-xl">91万件</strong>
-              <span className="ml-1 text-xs text-slate-400">
-                (出典: 国民生活センター PIO-NET・2023年度)
-                {/* 公開前に最新の公表値と年度を必ず確認すること(v1.5 §3.2) */}
-              </span>
+            </p>
+            <p className="text-[11px] text-slate-400">
+              {/* 公開前に最新の公表値と年度を必ず確認すること(v1.5 §3.2) */}
+              ※出典: 国民生活センター PIO-NET・2023年度
             </p>
             <p className="text-xs text-slate-500">
-              これは&quot;相談まで行った人&quot;の数。言えずに終わった人は、ここに入っていません。
+              これは&quot;相談まで行った人&quot;の数。
+              <br />
+              言わずに終わった人はここに入っていません。
             </p>
           </section>
 
@@ -101,13 +103,13 @@ export default async function HomePage() {
           <section className="card mx-auto max-w-xl space-y-3 border-amber-200 bg-amber-50/50">
             <h2 className="text-base font-bold text-slate-900">言わなかった人にも、書く場所を。</h2>
             <p className="text-sm text-slate-700">
-              文句を言うほどでもなかった。でも、もう二度と使いたくない。
+              文句を言うほどでもなかった。でもなんか使いたくない。
               <br />——いちばん多いのに、いちばん残っていないのが、この記録です。
             </p>
             <p className="text-sm text-slate-700">
               クレームソルブは「<strong>なぜ、言わなかったのか</strong>」を聞きます。企業を告発するためではありません。
-              「連絡先が分からなかった」「繋がらなかった」という理由が集まると、
-              <strong>窓口の届きにくさが数字で見えてくる</strong>からです。
+              「連絡先が分からなかった」「繋がらなかった」という理由を集め、
+              <strong>消費者の不満を減らす対策を企業に考えてもらう</strong>ためです。
             </p>
             <div className="flex flex-wrap gap-1">
               {["連絡先が分からなかった", "言っても無駄だと思った", "揉めるのが怖かった"].map((t) => (
