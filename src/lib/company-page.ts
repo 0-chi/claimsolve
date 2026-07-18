@@ -1,0 +1,116 @@
+import { prisma } from "@/lib/prisma";
+import { within24Months } from "@/lib/scoring";
+import { REVIEW_COMPLAINT_OR } from "@/lib/queries";
+import type { ReviewCardReview } from "@/components/ReviewCard";
+
+// 表示用にレビューを整形(係争中フラグ・対策/解決バッジ・返信を付与)。
+export async function loadCompanyReviews(
+  companyId: string,
+  period: "recent" | "all"
+): Promise<ReviewCardReview[]> {
+  const reviews = await prisma.review.findMany({
+    where: {
+      companyId,
+      complaint: { OR: REVIEW_COMPLAINT_OR },
+    },
+    include: {
+      complaint: {
+        include: {
+          objections: true,
+          actionLinks: { include: { note: true } },
+          resolutionBadge: true,
+          helpfulMark: true,
+        },
+      },
+      reply: true,
+      user: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+
+  const filtered = reviews.filter((r) =>
+    period === "all"
+      ? true
+      : within24Months({
+          occurredYearMonth: r.complaint.occurredYearMonth,
+          evalDate: r.complaint.lane === "live" ? r.publishedAt ?? r.createdAt : null,
+        })
+  );
+
+  return filtered.map((r) => ({
+    id: r.id,
+    satisfaction: r.satisfaction,
+    outcome: r.outcome,
+    wouldUseAgain: r.wouldUseAgain,
+    firstReplySpeed: r.firstReplySpeed,
+    transferCount: r.transferCount,
+    agentScore: r.agentScore,
+    supervisorScore: r.supervisorScore,
+    noEscalation: r.noEscalation,
+    externalChannels: r.externalChannels,
+    totalDays: r.totalDays,
+    comment: r.comment,
+    noResponseEval: r.noResponseEval,
+    complaint: {
+      title: r.complaint.title,
+      body: r.complaint.body,
+      occurredYearMonth: r.complaint.occurredYearMonth,
+      lane: r.complaint.lane,
+      status: r.complaint.status,
+    },
+    reply: r.reply ? { body: r.reply.body } : null,
+    user: { kycStatus: r.user.kycStatus },
+    disputed: r.complaint.objections.some((o) => o.status === "kept_disputed"),
+    actionNotes: r.complaint.actionLinks
+      .filter((l) => l.note.status === "published")
+      .map((l) => ({ id: l.note.id, body: l.note.body })),
+    resolutionBadge: r.complaint.resolutionBadge
+      ? {
+          praisePoints: r.complaint.resolutionBadge.praisePoints
+            .split(",")
+            .map((p) => p.trim())
+            .filter(Boolean),
+          praiseComment: r.complaint.resolutionBadge.praiseComment,
+        }
+      : null,
+    helpful: !!r.complaint.helpfulMark && !r.complaint.helpfulMark.retractedAt,
+  }));
+}
+
+// 沈黙レポート(silent)の一覧。企業ページ「言わずに終わった声」セクション用。
+export async function loadSilentReports(companyId: string) {
+  const rows = await prisma.complaint.findMany({
+    where: { companyId, lane: "silent", status: "published" },
+    include: { user: true, objections: true },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map((c) => ({
+    id: c.id,
+    title: c.title,
+    body: c.body,
+    occurredYearMonth: c.occurredYearMonth,
+    silenceReasons: (c.silenceReasons ?? "").split(",").map((r) => r.trim()).filter(Boolean),
+    silentWouldUseAgain: c.silentWouldUseAgain,
+    desiredOutcome: c.desiredOutcome,
+    kycStatus: c.user.kycStatus,
+    disputed: c.objections.some((o) => o.status === "kept_disputed"),
+  }));
+}
+
+// ライブ事実データ(公開情報のみ)。live_enabled=ON のときだけ表示に使う。
+export async function loadLiveFacts(companyId: string) {
+  const live = await prisma.complaint.findMany({
+    where: { companyId, lane: "live", status: { notIn: ["pending_review", "removed"] } },
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      notifiedAt: true,
+      firstReplyAt: true,
+      publishedAt: true,
+      sameCount: true,
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  return live;
+}
