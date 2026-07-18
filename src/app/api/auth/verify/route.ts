@@ -1,3 +1,4 @@
+import { sealCookie } from "@/lib/cookie-seal";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyMagic } from "@/lib/auth-token";
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest) {
   if (!userId) {
     return NextResponse.redirect(`${base}/login?error=invalid`);
   }
-  cookies().set(SESSION_COOKIE, userId, {
+  cookies().set(SESSION_COOKIE, sealCookie(userId), {
     httpOnly: true,
     sameSite: "lax",
     path: "/",

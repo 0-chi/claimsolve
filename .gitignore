@@ -16,3 +16,6 @@ tsconfig.tsbuildinfo
 # stray nested prisma dir guard
 prisma/prisma/
 test.db
+
+# 自動生成(scripts/gen-pg-schema.mjs)
+prisma/schema.postgres.prisma

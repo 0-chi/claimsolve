@@ -95,7 +95,7 @@ export async function submitSilentReport(input: SilentInput) {
   // 3. 本文50字以上
   if (!canPostBody(input.body)) throw new PostError("too_short", "本文は50字以上で入力してください。");
   // 4. NGハードチェック
-  if (!moderationService.check(input.body).ok) {
+  if (!(await moderationService.check(input.body)).ok) {
     throw new PostError("ng_hard", "投稿できない表現が含まれています。");
   }
 

@@ -1,3 +1,4 @@
+import { sealCookie } from "@/lib/cookie-seal";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { submitLiveComplaint } from "@/lib/live";
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
     const result = await submitLiveComplaint(body);
     const complaint = await prisma.complaint.findUnique({ where: { id: result.complaintId } });
     if (complaint) {
-      cookies().set(SESSION_COOKIE, complaint.userId, {
+      cookies().set(SESSION_COOKIE, sealCookie(complaint.userId), {
         httpOnly: true,
         sameSite: "lax",
         path: "/",

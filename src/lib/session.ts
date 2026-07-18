@@ -3,12 +3,14 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
 import { getFlag, getGateActivatedAt } from "@/lib/flags";
+import { openCookie } from "@/lib/cookie-seal";
 import { latestAccessExpiry } from "@/lib/gate";
 
 export const SESSION_COOKIE = "cs_uid";
 
 export async function getCurrentUser() {
-  const uid = cookies().get(SESSION_COOKIE)?.value;
+  const raw = cookies().get(SESSION_COOKIE)?.value;
+  const uid = openCookie(raw);
   if (!uid) return null;
   const user = await prisma.user.findUnique({ where: { id: uid } });
   if (!user || user.bannedAt) return null;

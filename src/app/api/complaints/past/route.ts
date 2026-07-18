@@ -1,3 +1,4 @@
+import { sealCookie } from "@/lib/cookie-seal";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { submitPastReview, PostError } from "@/lib/post";
@@ -11,7 +12,7 @@ export async function POST(req: NextRequest) {
     const result = await submitPastReview({ ...body, ipHash: ip, userAgent: ua });
 
     // セッション確立(投稿者=登録済み消費者)
-    cookies().set(SESSION_COOKIE, result.userId, {
+    cookies().set(SESSION_COOKIE, sealCookie(result.userId), {
       httpOnly: true,
       sameSite: "lax",
       path: "/",

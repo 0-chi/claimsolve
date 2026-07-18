@@ -129,8 +129,8 @@ export async function submitPastReview(input: PastReviewInput) {
   }
 
   // 3. NGハードチェック(本文 + コメント)
-  const modBody = moderationService.check(input.body);
-  const modComment = moderationService.check(input.review.comment ?? "");
+  const modBody = await moderationService.check(input.body);
+  const modComment = await moderationService.check(input.review.comment ?? "");
   if (!modBody.ok || !modComment.ok) {
     throw new PostError("ng_hard", "投稿できない表現が含まれています。");
   }

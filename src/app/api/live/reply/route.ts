@@ -9,7 +9,7 @@ export async function POST(req: NextRequest) {
   if (!mt || mt.expiresAt < new Date()) {
     return NextResponse.json({ ok: false, code: "invalid_token" }, { status: 401 });
   }
-  if (!moderationService.check(String(body ?? "")).ok) {
+  if (!(await moderationService.check(String(body ?? ""))).ok) {
     return NextResponse.json({ ok: false, code: "ng_hard" }, { status: 400 });
   }
   await prisma.threadMessage.create({

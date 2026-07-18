@@ -42,9 +42,22 @@ export default function SupportPage() {
 
       <section className="space-y-2">
         <h2 className="text-base font-bold text-slate-900">お問い合わせ</h2>
-        <p className="rounded bg-amber-50 p-3 text-xs text-amber-700">
-          ※お問い合わせ窓口は準備中です。公開時にメールフォームを設置します。
-        </p>
+        {process.env.NEXT_PUBLIC_CONTACT_EMAIL ? (
+          <p>
+            お問い合わせは{" "}
+            <a
+              href={`mailto:${process.env.NEXT_PUBLIC_CONTACT_EMAIL}`}
+              className="text-brand-700 underline"
+            >
+              {process.env.NEXT_PUBLIC_CONTACT_EMAIL}
+            </a>{" "}
+            までお送りください。
+          </p>
+        ) : (
+          <p className="rounded bg-amber-50 p-3 text-xs text-amber-700">
+            ※お問い合わせ窓口は準備中です。公開時にメールフォームを設置します。
+          </p>
+        )}
       </section>
     </article>
   );

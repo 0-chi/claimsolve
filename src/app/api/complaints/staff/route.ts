@@ -1,3 +1,4 @@
+import { sealCookie } from "@/lib/cookie-seal";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { submitStaffReport } from "@/lib/staff";
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
     const ip = req.headers.get("x-forwarded-for") ?? "unknown";
     const ua = req.headers.get("user-agent") ?? "unknown";
     const result = await submitStaffReport({ ...body, ipHash: ip, userAgent: ua });
-    cookies().set(SESSION_COOKIE, result.userId, {
+    cookies().set(SESSION_COOKIE, sealCookie(result.userId), {
       httpOnly: true,
       sameSite: "lax",
       path: "/",

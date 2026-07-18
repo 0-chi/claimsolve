@@ -1,10 +1,11 @@
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { openCookie } from "@/lib/cookie-seal";
 
 export const COMPANY_COOKIE = "cs_cid";
 
 export async function getCurrentCompanyUser() {
-  const id = cookies().get(COMPANY_COOKIE)?.value;
+  const id = openCookie(cookies().get(COMPANY_COOKIE)?.value);
   if (!id) return null;
   const cu = await prisma.companyUser.findUnique({
     where: { id },

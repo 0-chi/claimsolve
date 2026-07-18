@@ -1,12 +1,23 @@
 import { createHash } from "node:crypto";
+import bcrypt from "bcryptjs";
 
-// MVP用の簡易ハッシュ(本番は bcrypt/argon2 に差し替え)。seed と同一方式。
+// 新規ハッシュは bcrypt。シード由来の旧 sha256$ ハッシュも検証だけは通す
+// (デモデータ互換。本番DBは最初から bcrypt のみ)。
 export function hashPassword(pw: string): string {
+  return bcrypt.hashSync(pw, 10);
+}
+
+function legacySha256(pw: string): string {
   return "sha256$" + createHash("sha256").update(pw).digest("hex");
 }
 
 export function verifyPassword(pw: string, hash: string): boolean {
-  return hashPassword(pw) === hash;
+  if (hash.startsWith("sha256$")) return legacySha256(pw) === hash;
+  try {
+    return bcrypt.compareSync(pw, hash);
+  } catch {
+    return false;
+  }
 }
 
 // フリーメール(企業ドメイン認証で不可)。

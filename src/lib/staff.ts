@@ -103,7 +103,7 @@ export async function submitStaffReport(input: StaffInput) {
     throw new PostError("too_short", "本文は80字以上で入力してください。");
   }
   // 4. NGハードチェック(個人名・電話番号等は既存ルールでブロック)
-  const mod = moderationService.check(`${input.body}\n${input.department}`);
+  const mod = await moderationService.check(`${input.body}\n${input.department}`);
   if (!mod.ok) throw new PostError("ng_hard", "投稿できない表現(個人名等)が含まれています。担当者名は書かず、日時と部署でお知らせください。");
 
   const issues = (input.staffIssues ?? []).filter((i) =>

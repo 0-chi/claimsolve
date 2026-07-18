@@ -7,6 +7,7 @@ const GA_ID = process.env.NEXT_PUBLIC_GA_ID;
 const GSC_VERIFICATION = process.env.NEXT_PUBLIC_GSC_VERIFICATION;
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.APP_URL || "http://localhost:3000"),
   title: "クレームソルブ(ClaimSolve)| クレーム対応の評判・スコア",
   description:
     "企業の「クレーム対応」を評価するレビューサイト。カスタマーサポートの評判・スコアを検索できます。",

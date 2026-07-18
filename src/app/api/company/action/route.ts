@@ -28,15 +28,15 @@ export async function POST(req: NextRequest) {
       throw { code: "plan_required", message: "ライトプランが必要です。" };
     }
   };
-  const ngCheck = (text: string) => {
-    if (!moderationService.check(text).ok) throw { code: "ng_hard", message: "投稿できない表現が含まれます。" };
+  const ngCheck = async (text: string) => {
+    if (!(await moderationService.check(text)).ok) throw { code: "ng_hard", message: "投稿できない表現が含まれます。" };
   };
 
   try {
     switch (type) {
       case "reply": {
         await requireLight();
-        ngCheck(body.body);
+        await ngCheck(body.body);
         const review = await prisma.review.findUnique({ where: { id: body.reviewId } });
         if (!review || review.companyId !== companyId) throw { code: "forbidden" };
         await prisma.reviewReply.upsert({
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
         if (!validActionNoteBody(body.body ?? "")) {
           throw { code: "body_length", message: "対策の内容は80字以上500字以下で記載してください。" };
         }
-        ngCheck(body.body);
+        await ngCheck(body.body);
         const complaintIds: string[] = Array.from(new Set(body.complaintIds ?? []));
         if (complaintIds.length < 1) {
           throw { code: "link_required", message: "対策バッジは必ず投稿に紐付けてください。" };
@@ -138,7 +138,7 @@ export async function POST(req: NextRequest) {
         if (!validOfferBody(body.body ?? "")) {
           throw { code: "body_length", message: "申し出の内容は80字以上で記載してください。" };
         }
-        ngCheck(body.body);
+        await ngCheck(body.body);
         const c = await prisma.complaint.findUnique({
           where: { id: body.complaintId },
           include: { user: true, company: true },
@@ -188,7 +188,7 @@ export async function POST(req: NextRequest) {
 
       case "thread_reply": {
         await requireLight();
-        ngCheck(body.body);
+        await ngCheck(body.body);
         const c = await prisma.complaint.findUnique({ where: { id: body.complaintId } });
         if (!c || c.companyId !== companyId || c.lane !== "live") throw { code: "forbidden" };
         await prisma.threadMessage.create({

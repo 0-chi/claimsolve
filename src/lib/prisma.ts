@@ -7,9 +7,13 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 // Vercel などサーバーレス環境はファイルシステムが読み取り専用のため、
-// ビルド時に同梱したシード済み SQLite(prisma/prod.db)を書き込み可能な
-// /tmp にコピーして使う。ローカルは .env の DATABASE_URL をそのまま利用。
+// 【デモモード】ではビルド時に同梱したシード済み SQLite(prisma/prod.db)を
+// 書き込み可能な /tmp にコピーして使う(書き込みは揮発)。
+// 【本番モード】(DATABASE_URL が PostgreSQL)ではそのまま本物のDBに接続する。
+// ローカルは .env の DATABASE_URL をそのまま利用。
 function resolveDatabaseUrl(): string | undefined {
+  const url = process.env.DATABASE_URL ?? "";
+  if (url.startsWith("postgres://") || url.startsWith("postgresql://")) return undefined;
   if (!process.env.VERCEL) return undefined;
   const tmpDb = "/tmp/dev.db";
   if (!fs.existsSync(tmpDb)) {

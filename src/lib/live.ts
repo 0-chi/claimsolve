@@ -74,7 +74,7 @@ export async function submitLiveComplaint(input: LiveComplaintInputDTO) {
   const verified = await smsService.verify(input.account.phone, input.account.code);
   if (!verified) throw new PostError("sms_invalid", "認証コードが正しくありません。");
   if (!canPostBody(input.body)) throw new PostError("too_short", "本文は50字以上で入力してください。");
-  if (!moderationService.check(input.body).ok) throw new PostError("ng_hard", "投稿できない表現が含まれています。");
+  if (!(await moderationService.check(input.body)).ok) throw new PostError("ng_hard", "投稿できない表現が含まれています。");
 
   const user = await resolveUserLive(input.account);
   const company = await resolveCompanyLive(input);
@@ -172,7 +172,7 @@ export async function confirmResolution(
   }
 
   const praiseComment = (input.praiseComment ?? "").trim();
-  if (praiseComment && !moderationService.check(praiseComment).ok) {
+  if (praiseComment && !(await moderationService.check(praiseComment)).ok) {
     throw new PostError("ng_hard", "称賛コメントに投稿できない表現が含まれています。");
   }
 
@@ -295,7 +295,7 @@ export async function respondObjection(
     await prisma.complaint.update({ where: { id: mt.complaintId }, data: { status: "removed" } });
   } else if (decision === "edit") {
     // 修正 = この場合のみ1回編集可・修正履歴を保持
-    if (!newBody || !moderationService.check(newBody).ok) {
+    if (!newBody || !(await moderationService.check(newBody)).ok) {
       throw new PostError("ng_hard", "修正内容に問題があります。");
     }
     const complaint = await prisma.complaint.findUnique({ where: { id: mt.complaintId } });

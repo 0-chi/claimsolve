@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/session";
 import Link from "next/link";
 import KycForm from "@/components/KycForm";
+import { kycAvailable } from "@/services";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "本人確認(任意)| クレームソルブ" };
@@ -24,6 +25,10 @@ export default async function KycPage() {
       </p>
       {user.kycStatus === "verified" ? (
         <div className="card bg-emerald-50 text-sm text-emerald-700">本人確認済みです。</div>
+      ) : !kycAvailable ? (
+        <div className="card bg-slate-50 text-sm text-slate-500">
+          本人確認は現在準備中です。提供開始までお待ちください(本人確認なしでも投稿はできます)。
+        </div>
       ) : (
         <KycForm />
       )}

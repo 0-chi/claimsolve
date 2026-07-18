@@ -1,3 +1,4 @@
+import { sealCookie } from "@/lib/cookie-seal";
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { prisma } from "@/lib/prisma";
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
       body: `${company.name} の企業アカウントを登録しました。`,
       purpose: "company_register",
     });
-    cookies().set(COMPANY_COOKIE, cu.id, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
+    cookies().set(COMPANY_COOKIE, sealCookie(cu.id), { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
     return NextResponse.json({ ok: true });
   }
 
@@ -52,6 +53,6 @@ export async function POST(req: NextRequest) {
   if (!cu || !verifyPassword(String(password), cu.passwordHash)) {
     return NextResponse.json({ ok: false, message: "メールまたはパスワードが違います。" }, { status: 401 });
   }
-  cookies().set(COMPANY_COOKIE, cu.id, { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
+  cookies().set(COMPANY_COOKIE, sealCookie(cu.id), { httpOnly: true, sameSite: "lax", path: "/", maxAge: 60 * 60 * 24 * 30 });
   return NextResponse.json({ ok: true });
 }
